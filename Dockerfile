@@ -1,6 +1,6 @@
 # https://hub.docker.com/r/library/node/
 
-FROM node:0.12
+FROM node:4.1
 
 # Bundle app source
 COPY . /
