@@ -15,14 +15,6 @@ The visualization displays the EC2 instances in the selected cluster as vertical
 Each unique Task Definition is represented as a different color, with the legend showing the Task Family name and revision number.
 Each Task will contain one or more containers, the task box shows accumulated reserved memory for all containers in the Task. ECS Services are not currently represented.
 
-### Usage
-
-When a client browser first connects to the c3vis server the Cluster dropdown will be populated with ECS cluster names for the configured region.
-
-Select from the dropdown to view the resources allocated to that cluster. If no cluster names appear in the dropdown, check the server logs and ensure the correct region is configured (see below).
-
-The list of clusters and the user's current selection are stored in cookies. Use the [refresh list] dropdown entry to refresh the list of clusters.
-
 ### Limitations
 
 Cluster visualisation is currently limited to displaying up to 100 instances.
@@ -63,24 +55,36 @@ When using an IAM role, ensure the role has the following access:
 Ensure the c3vis server is available only to users that should have access to this information.
 
 
+## Requirements
+
+Node >= 0.12
+
 ## Building and Running
 
-This app contains an ExpressJS web server. Client-side is mostly D3.
+Server is based on ExpressJS. Client uses D3.js.
 
-Run this to build and run the server ("package.json" contains instructions to pre-install required node modules):
+Run the following to build and run the server ("package.json" contains instructions to pre-install required node modules):
 
 ```
 npm start
 ```
 
-This is the equivalent of: ```node --harmony ./bin/www```
-(Using Node.js v0.12.4, "--harmony" is required for extra ES6 functionality such as Array.find())
+This will run ```npm install``` and ```node --harmony ./bin/www```
+(NOTE: ```"--harmony"``` is required for ES6 functionality such as Array.find())
 
 Now browse to the app at `http://localhost:3000`.
 
+### Usage
+
+When a client browser first connects to the c3vis server the Cluster dropdown will be populated with ECS cluster names for the configured region.
+
+Select from the dropdown to view the resources allocated to that cluster. If no cluster names appear in the dropdown, check the server logs and ensure the correct region is configured (see below).
+
+The list of clusters and the user's current selection are stored in cookies. Use the [refresh list] dropdown entry to refresh the list of clusters.
+
 ### Sample Clusters for Testing
 
-From the browser, use a ``"?static=true"`` query parameter to have the server return static test data. Useful for testing when server is unable to connect to AWS.
+From the browser, use a ```"?static=true"``` query parameter to have the server return static test data. Useful for testing when server is unable to connect to AWS.
 
 Browse to `http://localhost:3000/?static=true`.
 
@@ -106,14 +110,14 @@ Build and tag the image:
 docker build -t c3vis .
 ```
 
-Run the container: (can remove AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY if deployed somewhere with appropriate IAM access)
+Run the container: (can remove ```AWS_ACCESS_KEY_ID``` and ```AWS_SECRET_ACCESS_KEY``` if deployed somewhere with appropriate IAM access)
 
 ```
 docker run -e "AWS_REGION=<region> AWS_ACCESS_KEY_ID=<accesskey>" -e "AWS_SECRET_ACCESS_KEY=<secretkey>" -p 3000:3000 c3vis
 ```
 
 
-Browse to `<docker localhost>:3000`
+Browse to `<docker localhost>:3000` (e.g. [http://192.168.99.100:3000](http://192.168.99.100:3000))
 
 
 # Credits
