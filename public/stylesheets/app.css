@@ -1,0 +1,36 @@
+/* D3 graph styles */
+
+.graph-axis path,
+.graph-axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+.graph-axis-small {
+    font-size: 10px;
+}
+
+.instance-block {
+    fill: #FAFAFA;
+    stroke: #111;
+    shape-rendering: crispEdges;
+}
+
+.task-block {
+    stroke: grey;
+    shape-rendering: crispEdges;
+}
+
+.legend-task-block {
+    stroke: #777;
+    shape-rendering: crispEdges;
+}
+
+/* Bootstrap overrides */
+
+.navbar-text-closer-right {
+    margin-right: 0;
+}
+.navbar-inverse .navbar-brand {
+    color: #ffffff;
+}

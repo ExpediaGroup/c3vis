@@ -1,0 +1,22 @@
+{
+  "name": "c3vis",
+  "version": "0.1.0",
+  "homepage": "https://github.com/ExpediaDotCom/c3vis",
+  "authors": [
+    "Matt Callanan"
+  ],
+  "license": "Apache-2.0",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "d3": "~3.5.6",
+    "jquery": "~1",
+    "js-cookie": "~2.0.2",
+    "spin.js": "~2.3.1"
+  }
+}

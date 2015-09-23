@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title><%= title %></title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel='stylesheet' href='stylesheets/thirdparty/bootstrap.min.css' />
+    <link rel='stylesheet' href='stylesheets/app.css' />
+    <script src="javascripts/thirdparty/d3.min.js"></script>
+    <script src="javascripts/thirdparty/colorbrewer.js"></script>
+    <script src="javascripts/thirdparty/jquery.min.js"></script>
+    <script src="javascripts/thirdparty/bootstrap.min.js"></script>
+    <script src="javascripts/thirdparty/spin.min.js"></script>
+    <script src="javascripts/thirdparty/js.cookie.js"></script>
+    <script src="javascripts/graph.js"></script>
+    <script>
+      var refreshButtonText = "[refresh list]";
+      var spinner = new Spinner();
+      var stopSpinner = function () { spinner.stop() };
+      function getClusterCookie() {
+        return Cookies.get("cluster" + (staticData() ? "-static" : ""));
+      }
+      function getClustersCookie() {
+        return Cookies.get("clusters" + (staticData() ? "-static" : ""));
+      }
+      function setClusterCookie(value) {
+        Cookies.set("cluster" + (staticData() ? "-static" : ""), value, 7);
+      }
+      function setClustersCookie(value) {
+        Cookies.set("clusters" + (staticData() ? "-static" : ""), value, 7);
+      }
+      function removeClustersCookie() {
+        Cookies.remove("clusters" + (staticData() ? "-static" : ""));
+      }
+      function refreshClusterDropdown() {
+        removeClustersCookie();
+        location.reload();
+      }
+      function buildClusterDropdown(clusters, clusterChoice) {
+        // Build cluster dropdown with preselected cluster from 'cluster' cookie
+        var clusterArray = (clusters instanceof Array) ? clusters : clusters.length > 0 ? clusters.split(",") : [];
+        window.clusters = clusters;
+        window.clusterArray = clusterArray;
+
+        var clusterSelect = $("#clusterChoice");
+        clusterSelect.change(function () {
+          if ($("#clusterChoice").val() == refreshButtonText) {
+              refreshClusterDropdown();
+            } else {
+              redrawGraph();
+            setClusterCookie($("#clusterChoice").val());
+            }
+        });
+        $("<option />")
+                .attr("value", '')
+                .html(clusterArray.length > 0 ? "Select a cluster..." : "No clusters available")
+                .appendTo(clusterSelect);
+        clusterArray.forEach(function(clusterName){
+          $("<option />")
+                  .attr("value", clusterName)
+                  .attr('selected', clusterName == clusterChoice)
+                  .html(clusterName)
+                  .appendTo(clusterSelect);
+        });
+        $("<option />")
+                .attr("value", refreshButtonText)
+                .html(refreshButtonText)
+                .appendTo(clusterSelect);
+      }
+      function redrawGraph() {
+        if ($("#clusterChoice").val()) {
+          spinner.spin(document.body);
+          drawGraph("body", staticData(), $("#clusterChoice").val(), stopSpinner, stopSpinner);
+        }
+      }
+      function staticData() {
+        return <%= useStaticData %>;
+      }
+    </script>
+  </head>
+
+  <body>
+
+    <nav class="navbar-inverse navbar-default">
+      <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#"><%= title %></a>
+        </div>
+        <div class="navbar-text navbar-text-closer-right">Cluster:</div>
+        <div>
+          <form class="navbar-form navbar-left">
+            <div class="form-group">
+              <select id="clusterChoice" class="form-control" title="Select a Cluster"></select>
+            </div>
+          </form>
+        </div>
+      </div>
+    </nav>
+
+    <script>
+      $(".dropdown-menu li a").click(function(){
+        var selText = $(this).text();
+        $(this).parents('.btn-group').find('.dropdown-toggle').html(selText+' <span class="caret"></span>');
+      });
+
+      // Get list of clusters from cookie or from server
+      var clusterListCookie = getClustersCookie();
+      var clusterChoiceCookie = getClusterCookie();
+      window.clusterListCookie = clusterListCookie;
+      window.clusterChoiceCookie = clusterChoiceCookie;
+      if (!clusterListCookie) {
+        $.getJSON("/api/cluster_names" + (staticData() ? "?static=true" : ""), function(data) {
+          setClustersCookie(data.toString());
+          buildClusterDropdown(data.toString(), clusterChoiceCookie);
+          redrawGraph();
+        });
+      } else {
+        buildClusterDropdown(clusterListCookie, clusterChoiceCookie);
+        redrawGraph();
+      }
+    </script>
+
+  </body>
+</html>

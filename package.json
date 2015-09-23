@@ -1,0 +1,23 @@
+{
+  "name": "c3vis",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "prestart": "npm install",
+    "start": "node --harmony ./bin/www  # --harmony required for extra ES6 functionality such as Array.find()"
+  },
+  "dependencies": {
+    "body-parser": "1.12.4",
+    "cookie-parser": "1.3.5",
+    "debug": "2.2.0",
+    "ejs": "2.3.1",
+    "express": "4.12.4",
+    "morgan": "1.5.3",
+    "serve-favicon": "2.2.1",
+    "aws-sdk": "2.1.36",
+    "aws-sdk-promise": "0.0.2"
+  },
+  "dev-dependencies": {
+    "nodemon": "1.3.7"
+  }
+}
