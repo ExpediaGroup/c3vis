@@ -1,6 +1,6 @@
 # c3vis - Cloud Container Cluster Visualizer
 
-Helps visualize the resource utilisation of an Amazon ECS cluster.
+Helps visualize the resource utilisation of Amazon ECS clusters.
 
 Deploying software as “containers” promises to solve many problems with regards to interoperability of environments, speed to deploy, and cost reduction.
 But understanding where our software lives now becomes more difficult both for development and operations teams.
@@ -17,7 +17,7 @@ Each Task will contain one or more containers, the task box shows accumulated re
 
 ### Limitations
 
-Cluster visualisation is currently limited to displaying up to 100 instances.
+Cluster visualisation is currently limited to displaying up to the first 100 instances in a cluster. It represents reserved memory only.
 
 
 ## Configure
@@ -80,7 +80,11 @@ When a client browser first connects to the c3vis server the Cluster dropdown wi
 
 Select from the dropdown to view the resources allocated to that cluster. If no cluster names appear in the dropdown, check the server logs and ensure the correct region is configured (see below).
 
-The list of clusters and the user's current selection are stored in cookies. Use the [refresh list] dropdown entry to refresh the list of clusters.
+The list of clusters and the user's current selection are stored in cookies. Use the ```[refresh list]``` dropdown entry to refresh the list of clusters.
+
+The Y axis shows total memory available for the instances.
+
+The X axis displays the EC2 Instance Id for each instance. Clicking the instance ID opens the ECS console for that container instance.
 
 ### Sample Clusters for Testing
 

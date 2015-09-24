@@ -117,7 +117,7 @@ router.get('/api/cluster_names', function (req, res, next) {
       }
     });
   } else {
-    res.json(["demo-cluster-7", "demo-cluster-50", "demo-cluster-75", "demo-cluster-100"]);
+    res.json(["demo-cluster-8", "demo-cluster-50"]);
   }
 });
 
