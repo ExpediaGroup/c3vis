@@ -105,6 +105,111 @@
 	]
   },
   {
+	"ec2InstanceId": "i-bbbbbbbb",
+	"registeredCPU": 2048,
+	"registeredMemory": 8000,
+	"remainingCPU": 960,
+	"remainingMemory": 3712,
+	"tasks": [
+	  {
+		"overrides": {
+		  "containerOverrides": [
+			{
+			  "command": null,
+			  "name": "example-service-19"
+			}
+		  ]
+		},
+		"taskDefinitionArn": "arn:aws:ecs:us-west-2:123456789012:task-definition/example-service-19:42",
+		"taskDefinition": {
+		  "containerDefinitions": [
+			{
+			  "cpu": 1024,
+			  "memory": 2048
+			},
+			{
+			  "cpu": 64,
+			  "memory": 96
+			}
+		  ],
+		  "taskDefinitionArn": "arn:aws:ecs:us-west-2:123456789012:task-definition/example-service-19:42",
+		  "volumes": []
+		},
+		"lastStatus": "RUNNING",
+		"containers": [
+		  {
+			"exitCode": 0,
+			"containerArn": "arn:aws:ecs:us-west-2:123456789012:container/22222222-2222-2222-2222-222222222222",
+			"networkBindings": [
+			  {
+				"hostPort": 10010,
+				"containerPort": 8080,
+				"bindIP": "0.0.0.0"
+			  }
+			],
+			"name": "example-service-19",
+			"reason": null,
+			"taskArn": "arn:aws:ecs:us-west-2:123456789012:task/22222222-2222-2222-2222-222222222222",
+			"lastStatus": "RUNNING"
+		  }
+		],
+		"desiredStatus": "RUNNING",
+		"containerInstanceArn": "arn:aws:ecs:us-west-2:123456789012:container-instance/22222222-2222-2222-2222-222222222222",
+		"taskArn": "arn:aws:ecs:us-west-2:123456789012:task/22222222-2222-2222-2222-222222222222",
+		"startedBy": "ecs-svc/123456789012345789",
+		"clusterArn": "arn:aws:ecs:us-west-2:123456789012:cluster/test"
+	  },
+	  {
+		"overrides": {
+		  "containerOverrides": [
+			{
+			  "command": null,
+			  "name": "example-service-09"
+			}
+		  ]
+		},
+		"taskDefinitionArn": "arn:aws:ecs:us-west-2:123456789012:task-definition/example-service-09:42",
+		"taskDefinition": {
+		  "containerDefinitions": [
+			{
+			  "cpu": 1024,
+			  "memory": 2048
+			},
+			{
+			  "cpu": 64,
+			  "memory": 96
+			}
+		  ],
+		  "taskDefinitionArn": "arn:aws:ecs:us-west-2:123456789012:task-definition/example-service-09:42",
+		  "volumes": []
+		},
+		"lastStatus": "RUNNING",
+		"containers": [
+		  {
+			"exitCode": 0,
+			"containerArn": "arn:aws:ecs:us-west-2:123456789012:container/22222222-2222-2222-2222-222222222222",
+			"networkBindings": [
+			  {
+				"hostPort": 10010,
+				"containerPort": 8080,
+				"bindIP": "0.0.0.0"
+			  }
+			],
+			"name": "example-service-09",
+			"reason": null,
+			"taskArn": "arn:aws:ecs:us-west-2:123456789012:task/22222222-2222-2222-2222-222222222222",
+			"lastStatus": "RUNNING"
+		  }
+		],
+		"desiredStatus": "RUNNING",
+		"containerInstanceArn": "arn:aws:ecs:us-west-2:123456789012:container-instance/22222222-2222-2222-2222-222222222222",
+		"taskArn": "arn:aws:ecs:us-west-2:123456789012:task/22222222-2222-2222-2222-222222222222",
+		"startedBy": "ecs-svc/123456789012345789",
+		"clusterArn": "arn:aws:ecs:us-west-2:123456789012:cluster/test"
+	  }
+	]
+  },
+  {
 	"ec2InstanceId": "i-cccccccc",
 	"registeredCPU": 2048,
 	"registeredMemory": 8000,
