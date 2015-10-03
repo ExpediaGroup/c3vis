@@ -27,37 +27,42 @@ function handleError(errorMsg, graph, onError) {
   onError(errorMsg);
 }
 
-function ecsInstanceConsoleUrl(data, ec2InstanceId) {
-  instance = data.find(function (element, index, array) { return element.ec2InstanceId == ec2InstanceId; });
+function ecsInstanceConsoleUrl(data, ec2IpAddress) {
+  instance = data.find(function (element, index, array) { return element.ec2IpAddress == ec2IpAddress; });
   return instance != null ? instance.ecsInstanceConsoleUrl : null;
+}
+
+function ec2InstanceConsoleUrl(data, ec2IpAddress) {
+  instance = data.find(function (element, index, array) { return element.ec2IpAddress == ec2IpAddress; });
+  return instance != null ? instance.ec2InstanceConsoleUrl : null;
+}
+
+function ec2InstanceId(data, ec2IpAddress) {
+  instance = data.find(function (element, index, array) { return element.ec2IpAddress == ec2IpAddress; });
+  return instance != null ? instance.ec2InstanceId : null;
+}
+
+function copyToClipboard(text) {
+  var copyElement = document.createElement('input');
+  copyElement.setAttribute('type', 'text');
+  copyElement.setAttribute('value', text);
+  copyElement = document.body.appendChild(copyElement);
+  copyElement.select();
+  try {
+    if (!document.execCommand('copy')) {
+      throw "document.execCommand('copy') is not supported or enabled"
+    }
+  } catch (e) {
+    console.log("document.execCommand('copy'); is not supported");
+    window.prompt('Copy this to clipboard (Ctrl+C or Cmd+C):', text);
+  } finally {
+    copyElement.remove();
+  }
 }
 
 function drawGraph(targetNode, useStaticData, cluster, onCompletion, onError) {
   try {
     var showTaskBreakdown = true;  // TODO: Parameterise
-    var topMargin = 20;
-    var bottomMargin = 100;
-    var rightMargin = 400;
-    var leftMargin = 50;
-    var graphWidth = 1300 - leftMargin - rightMargin;
-    var graphHeight = 520 - topMargin - bottomMargin;
-    var totalHeight = 2000;
-
-    var colorRange = d3.scale.ordinal().range(colorbrewer.Pastel1[9].concat(colorbrewer.Pastel2[8]).concat(colorbrewer.Set1[9]).concat(colorbrewer.Set2[8]).concat(colorbrewer.Set3[12]));
-    var xRange = d3.scale.ordinal().rangeRoundBands([10, graphWidth], .1);
-    var yRange = d3.scale.linear().rangeRound([graphHeight, 0]);
-    var xAxis = d3.svg.axis().scale(xRange).orient("bottom");
-    var yAxis = d3.svg.axis().scale(yRange).orient("left").tickFormat(d3.format(".2s"));
-
-    // Main graph area
-    d3.select("svg").remove();
-    var graph = d3.select(targetNode)
-      .append("svg")
-      .attr("class", "cluster-graph")
-      .attr("id", "cluster-graph")
-      .attr("width", graphWidth + leftMargin + rightMargin)
-      .attr("height", totalHeight + topMargin + bottomMargin)
-      .append("g").attr("transform", "translate(" + leftMargin + "," + topMargin + ")");
 
     if (!cluster && !useStaticData) {
       handleError("Please select a cluster.", graph, onError);
@@ -74,6 +79,31 @@ function drawGraph(targetNode, useStaticData, cluster, onCompletion, onError) {
         window.error = error;
         window.instance_summaries_with_tasks = data;
         console.log("For debugging: window.instance_summaries_with_tasks, window.error");
+
+        var topMargin = 20;
+        var bottomMargin = 100;
+        var rightMargin = 400;
+        var leftMargin = 50;
+        var graphWidth = (data.length > 50 ? 1600 : 1300) - leftMargin - rightMargin;
+        var graphHeight = 520 - topMargin - bottomMargin;
+        var totalHeight = 2000;
+
+        var colorRange = d3.scale.ordinal().range(colorbrewer.Pastel1[9].concat(colorbrewer.Pastel2[8]).concat(colorbrewer.Set1[9]).concat(colorbrewer.Set2[8]).concat(colorbrewer.Set3[12]));
+        var xRange = d3.scale.ordinal().rangeRoundBands([10, graphWidth], .1);
+        var yRange = d3.scale.linear().rangeRound([graphHeight, 0]);
+        var xAxis = d3.svg.axis().scale(xRange).orient("bottom");
+        var yAxis = d3.svg.axis().scale(yRange).orient("left").tickFormat(d3.format(".2s"));
+
+        // Main graph area
+        d3.select("svg").remove();
+        var graph = d3.select(targetNode)
+          .append("svg")
+          .attr("class", "cluster-graph")
+          .attr("id", "cluster-graph")
+          .attr("width", graphWidth + leftMargin + rightMargin)
+          .attr("height", totalHeight + topMargin + bottomMargin)
+          .append("g").attr("transform", "translate(" + leftMargin + "," + topMargin + ")");
+
         if (error) {
           var errorMsg = "Server Error: " + (error instanceof XMLHttpRequest ? error.responseText : JSON.stringify(error));
           handleError(errorMsg, graph, onError);
@@ -116,7 +146,7 @@ function drawGraph(targetNode, useStaticData, cluster, onCompletion, onError) {
 
         // Set X axis ordinal domain range to be list of server names
         xRange.domain(data.map(function (d) {
-          return d.ec2InstanceId;
+          return d.ec2IpAddress;
         }));
 
         // Calculate maximum memory across all servers
@@ -132,13 +162,34 @@ function drawGraph(targetNode, useStaticData, cluster, onCompletion, onError) {
           .attr("transform", "translate(0," + graphHeight + ")")
           .call(xAxis);
 
+        var menu = [
+          {
+            title: 'Copy IP Address',
+            action: function(elm, d, i) {
+              copyToClipboard(d);
+            }
+          },
+          {
+            title: 'Open ECS Container Instance Console',
+            action: function(elm, d, i) {
+              window.open(ecsInstanceConsoleUrl(data, d), '_blank');
+            }
+          },
+          {
+            title: 'Open EC2 Instance Console',
+            action: function(elm, d, i) {
+              window.open(ec2InstanceConsoleUrl(data, d), '_blank');
+            }
+          }
+        ];
+
         xAxisLabels.selectAll("text")
           .attr("cursor", "pointer")
-          .on("click", function(d) { window.open(ecsInstanceConsoleUrl(data, d), '_blank'); })
+          .on('contextmenu', d3.contextMenu(menu))
           // Use ecsInstanceConsoleUrl as hover tooltip
           .append("svg:title")
           .text(function (d) {
-            return ecsInstanceConsoleUrl(data, d);
+            return "Right-click for options";
           });
 
         // Rotate X axis labels 90 degrees if bar is wide enough to cause overlapping
@@ -175,7 +226,7 @@ function drawGraph(targetNode, useStaticData, cluster, onCompletion, onError) {
           .enter().append("g")
           .attr("class", "g")
           .attr("transform", function (d) {
-            return "translate(" + xRange(d.ec2InstanceId) + ",0)";
+            return "translate(" + xRange(d.ec2IpAddress) + ",0)";
           });
 
         // For each server, draw entire memory available as grey rect
