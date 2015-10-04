@@ -84,7 +84,7 @@ The list of clusters and the user's current selection are stored in cookies. Use
 
 The Y axis shows total memory available for the instances.
 
-The X axis displays the EC2 Instance Id for each instance. Clicking the instance ID opens the ECS console for that container instance.
+The X axis displays the Private IP Address for each EC2 instance. Right-clicking the IP address shows the context menu with links to browse the instance in the ECS and EC2 consoles.
 
 ### Sample Clusters for Testing
 
