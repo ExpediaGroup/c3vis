@@ -50,6 +50,7 @@ When using an IAM role, ensure the role has the following access:
 * ecs.describeTasks
 * ecs.describeTaskDefinition
 * ecs.listClusters
+* ec2.describeInstances
 
 **WARNING:** c3vis makes ECS data from the above API calls (including environment variables in task definitions) available to clients/browsers.
 Ensure the c3vis server is available only to users that should have access to this information.
