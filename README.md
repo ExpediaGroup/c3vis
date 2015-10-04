@@ -50,6 +50,7 @@ When using an IAM role, ensure the role has the following access:
 * ecs.describeTasks
 * ecs.describeTaskDefinition
 * ecs.listClusters
+* ec2.describeInstances
 
 **WARNING:** c3vis makes ECS data from the above API calls (including environment variables in task definitions) available to clients/browsers.
 Ensure the c3vis server is available only to users that should have access to this information.
@@ -84,7 +85,7 @@ The list of clusters and the user's current selection are stored in cookies. Use
 
 The Y axis shows total memory available for the instances.
 
-The X axis displays the EC2 Instance Id for each instance. Clicking the instance ID opens the ECS console for that container instance.
+The X axis displays the Private IP Address for each EC2 instance. Right-clicking the IP address shows the context menu with links to browse the instance in the ECS and EC2 consoles.
 
 ### Sample Clusters for Testing
 

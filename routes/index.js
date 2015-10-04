@@ -26,6 +26,7 @@ if (typeof AWS.config.region == 'undefined') {
 var utils = require('./utils');
 
 var ecs = new AWS.ECS();
+var ec2 = new AWS.EC2();
 
 /* Home page */
 
@@ -39,7 +40,7 @@ router.get('/', function(req, res, next) {
  */
 
 router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
-  console.log("/api/instance_summaries_with_tasks: cluster='" + req.query.cluster + "', live=" + req.query.static + ")");
+  console.log("/api/instance_summaries_with_tasks: cluster='" + req.query.cluster + "', live=" + !req.query.static + ")");
   if (!req.query.cluster) {
     send400Response("Please provide a 'cluster' parameter", res);
   } else {
@@ -47,6 +48,7 @@ router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
     var live = req.query.static != 'true';
     if (live) {
       var tasksArray = [];
+      var containerInstances = [];
       getTasksWithTaskDefinitions(cluster)
         .then(function (tasksResult) {
           tasksArray = tasksResult;
@@ -78,21 +80,35 @@ router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
               res.json([]);
             });
           } else {
-            var instanceSummaries = describeContainerInstancesResponse.data.containerInstances.map(function (instance) {
-              return {
-                "ec2InstanceId": instance.ec2InstanceId,
-                "ec2InstanceConsoleUrl": "https://console.aws.amazon.com/ec2/v2/home?region=" + AWS.config.region + "#Instances:instanceId=" + instance.ec2InstanceId,
-                "ecsInstanceConsoleUrl": "https://console.aws.amazon.com/ecs/home?region=" + AWS.config.region + "#/clusters/" + cluster + "/containerInstances/" + instance["containerInstanceArn"].substring(instance["containerInstanceArn"].lastIndexOf("/")+1),
-                "registeredCPU": utils.registeredCPU(instance),
-                "registeredMemory": utils.registeredMemory(instance),
-                "remainingCPU": utils.remainingCPU(instance),
-                "remainingMemory": utils.remainingMemory(instance),
-                "tasks": tasksArray.filter(function (t) {
-                  return t.containerInstanceArn == instance.containerInstanceArn
-                })
-              }
+            containerInstances = describeContainerInstancesResponse.data.containerInstances;
+            var ec2instanceIds = containerInstances.map(function (i) { return i.ec2InstanceId; });
+            console.log("ec2InstanceIds: " + ec2instanceIds);
+            return ec2.describeInstances({
+              InstanceIds: ec2instanceIds
+            }).promise()
+            .then(function (ec2Instances) {
+              console.log("ec2Instances: " + ec2Instances.data.Reservations);
+              var instances = [].concat.apply([], ec2Instances.data.Reservations.map(function (r) { return r.Instances }));
+              console.log("instances: " + instances);
+              console.log("IPs: " + instances.map(function (i) {return i.PrivateIpAddress}));
+              var instanceSummaries = containerInstances.map(function (instance) {
+                var ec2IpAddress = instances.find(function (i) {return i.InstanceId == instance.ec2InstanceId}).PrivateIpAddress;
+                return {
+                  "ec2IpAddress": ec2IpAddress,
+                  "ec2InstanceId": instance.ec2InstanceId,
+                  "ec2InstanceConsoleUrl": "https://console.aws.amazon.com/ec2/v2/home?region=" + AWS.config.region + "#Instances:instanceId=" + instance.ec2InstanceId,
+                  "ecsInstanceConsoleUrl": "https://console.aws.amazon.com/ecs/home?region=" + AWS.config.region + "#/clusters/" + cluster + "/containerInstances/" + instance["containerInstanceArn"].substring(instance["containerInstanceArn"].lastIndexOf("/") + 1),
+                  "registeredCPU": utils.registeredCPU(instance),
+                  "registeredMemory": utils.registeredMemory(instance),
+                  "remainingCPU": utils.remainingCPU(instance),
+                  "remainingMemory": utils.remainingMemory(instance),
+                  "tasks": tasksArray.filter(function (t) {
+                    return t.containerInstanceArn == instance.containerInstanceArn
+                  })
+                }
+              });
+              res.json(instanceSummaries);
             });
-            res.json(instanceSummaries);
           }
         })
         .catch(function (err) {
@@ -117,7 +133,7 @@ router.get('/api/cluster_names', function (req, res, next) {
       }
     });
   } else {
-    res.json(["demo-cluster-8", "demo-cluster-50"]);
+    res.json(["demo-cluster-8", "demo-cluster-50", "demo-cluster-75", "demo-cluster-100"]);
   }
 });
 

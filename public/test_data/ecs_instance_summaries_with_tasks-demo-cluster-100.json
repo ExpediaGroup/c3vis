@@ -1,6 +1,7 @@
 [
   {
 	"ec2InstanceId": "i-aaaaaa00",
+	"ec2IpAddress": "10.0.1.0",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -9,6 +10,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb00",
+	"ec2IpAddress": "10.0.2.0",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -114,6 +116,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc00",
+	"ec2IpAddress": "10.0.3.0",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -171,6 +174,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd00",
+	"ec2IpAddress": "10.0.4.0",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -179,6 +183,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee00",
+	"ec2IpAddress": "10.0.5.0",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -332,6 +337,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa01",
+	"ec2IpAddress": "10.0.1.1",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -340,6 +346,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb01",
+	"ec2IpAddress": "10.0.2.1",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -445,6 +452,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc01",
+	"ec2IpAddress": "10.0.3.1",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -502,6 +510,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd01",
+	"ec2IpAddress": "10.0.4.1",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -510,6 +519,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee01",
+	"ec2IpAddress": "10.0.5.1",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -663,6 +673,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa02",
+	"ec2IpAddress": "10.0.1.2",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -671,6 +682,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb02",
+	"ec2IpAddress": "10.0.2.2",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -776,6 +788,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc02",
+	"ec2IpAddress": "10.0.3.2",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -833,6 +846,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd02",
+	"ec2IpAddress": "10.0.4.2",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -841,6 +855,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee02",
+	"ec2IpAddress": "10.0.5.2",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -994,6 +1009,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa03",
+	"ec2IpAddress": "10.0.1.3",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -1002,6 +1018,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb03",
+	"ec2IpAddress": "10.0.2.3",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -1107,6 +1124,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc03",
+	"ec2IpAddress": "10.0.3.3",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -1164,6 +1182,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd03",
+	"ec2IpAddress": "10.0.4.3",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -1172,6 +1191,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee03",
+	"ec2IpAddress": "10.0.5.3",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -1325,6 +1345,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa04",
+	"ec2IpAddress": "10.0.1.4",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -1333,6 +1354,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb04",
+	"ec2IpAddress": "10.0.2.4",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -1438,6 +1460,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc04",
+	"ec2IpAddress": "10.0.3.4",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -1495,6 +1518,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd04",
+	"ec2IpAddress": "10.0.4.4",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -1503,6 +1527,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee04",
+	"ec2IpAddress": "10.0.5.4",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -1656,6 +1681,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa05",
+	"ec2IpAddress": "10.0.1.5",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -1664,6 +1690,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb05",
+	"ec2IpAddress": "10.0.2.5",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -1769,6 +1796,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc05",
+	"ec2IpAddress": "10.0.3.5",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -1826,6 +1854,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd05",
+	"ec2IpAddress": "10.0.4.5",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -1834,6 +1863,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee05",
+	"ec2IpAddress": "10.0.5.5",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -1987,6 +2017,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa06",
+	"ec2IpAddress": "10.0.1.6",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -1995,6 +2026,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb06",
+	"ec2IpAddress": "10.0.2.6",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -2100,6 +2132,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc06",
+	"ec2IpAddress": "10.0.3.6",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -2157,6 +2190,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd06",
+	"ec2IpAddress": "10.0.4.6",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -2165,6 +2199,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee06",
+	"ec2IpAddress": "10.0.5.6",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -2318,6 +2353,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa07",
+	"ec2IpAddress": "10.0.1.7",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -2326,6 +2362,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb07",
+	"ec2IpAddress": "10.0.2.7",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -2431,6 +2468,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc07",
+	"ec2IpAddress": "10.0.3.7",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -2488,6 +2526,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd07",
+	"ec2IpAddress": "10.0.4.7",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -2496,6 +2535,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee07",
+	"ec2IpAddress": "10.0.5.7",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -2649,6 +2689,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa08",
+	"ec2IpAddress": "10.0.1.8",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -2657,6 +2698,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb08",
+	"ec2IpAddress": "10.0.2.8",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -2762,6 +2804,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc08",
+	"ec2IpAddress": "10.0.3.8",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -2819,6 +2862,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd08",
+	"ec2IpAddress": "10.0.4.8",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -2827,6 +2871,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee08",
+	"ec2IpAddress": "10.0.5.8",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -2980,6 +3025,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa09",
+	"ec2IpAddress": "10.0.1.9",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -2988,6 +3034,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb09",
+	"ec2IpAddress": "10.0.2.9",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -3093,6 +3140,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc09",
+	"ec2IpAddress": "10.0.3.9",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -3150,6 +3198,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd09",
+	"ec2IpAddress": "10.0.4.9",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -3158,6 +3207,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee09",
+	"ec2IpAddress": "10.0.5.9",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -3311,6 +3361,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa10",
+	"ec2IpAddress": "10.0.1.10",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -3319,6 +3370,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb10",
+	"ec2IpAddress": "10.0.2.10",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -3424,6 +3476,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc10",
+	"ec2IpAddress": "10.0.3.10",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -3481,6 +3534,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd10",
+	"ec2IpAddress": "10.0.4.10",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -3489,6 +3543,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee10",
+	"ec2IpAddress": "10.0.5.10",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -3642,6 +3697,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa11",
+	"ec2IpAddress": "10.0.1.11",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -3650,6 +3706,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb11",
+	"ec2IpAddress": "10.0.2.11",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -3755,6 +3812,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc11",
+	"ec2IpAddress": "10.0.3.11",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -3812,6 +3870,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd11",
+	"ec2IpAddress": "10.0.4.11",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -3820,6 +3879,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee11",
+	"ec2IpAddress": "10.0.5.11",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -3973,6 +4033,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa12",
+	"ec2IpAddress": "10.0.1.12",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -3981,6 +4042,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb12",
+	"ec2IpAddress": "10.0.2.12",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -4086,6 +4148,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc12",
+	"ec2IpAddress": "10.0.3.12",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -4143,6 +4206,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd12",
+	"ec2IpAddress": "10.0.4.12",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -4151,6 +4215,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee12",
+	"ec2IpAddress": "10.0.5.12",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -4304,6 +4369,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa13",
+	"ec2IpAddress": "10.0.1.13",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -4312,6 +4378,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb13",
+	"ec2IpAddress": "10.0.2.13",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -4417,6 +4484,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc13",
+	"ec2IpAddress": "10.0.3.13",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -4474,6 +4542,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd13",
+	"ec2IpAddress": "10.0.4.13",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -4482,6 +4551,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee13",
+	"ec2IpAddress": "10.0.5.13",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -4635,6 +4705,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa14",
+	"ec2IpAddress": "10.0.1.14",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -4643,6 +4714,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb14",
+	"ec2IpAddress": "10.0.2.14",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -4748,6 +4820,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc14",
+	"ec2IpAddress": "10.0.3.14",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -4805,6 +4878,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd14",
+	"ec2IpAddress": "10.0.4.14",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -4813,6 +4887,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee14",
+	"ec2IpAddress": "10.0.5.14",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -4966,6 +5041,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa15",
+	"ec2IpAddress": "10.0.1.15",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -4974,6 +5050,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb15",
+	"ec2IpAddress": "10.0.2.15",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -5079,6 +5156,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc15",
+	"ec2IpAddress": "10.0.3.15",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -5136,6 +5214,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd15",
+	"ec2IpAddress": "10.0.4.15",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -5144,6 +5223,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee15",
+	"ec2IpAddress": "10.0.5.15",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -5297,6 +5377,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa16",
+	"ec2IpAddress": "10.0.1.16",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -5305,6 +5386,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb16",
+	"ec2IpAddress": "10.0.2.16",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -5410,6 +5492,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc16",
+	"ec2IpAddress": "10.0.3.16",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -5467,6 +5550,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd16",
+	"ec2IpAddress": "10.0.4.16",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -5475,6 +5559,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee16",
+	"ec2IpAddress": "10.0.5.16",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -5628,6 +5713,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa17",
+	"ec2IpAddress": "10.0.1.17",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -5636,6 +5722,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb17",
+	"ec2IpAddress": "10.0.2.17",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -5741,6 +5828,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc17",
+	"ec2IpAddress": "10.0.3.17",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -5798,6 +5886,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd17",
+	"ec2IpAddress": "10.0.4.17",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -5806,6 +5895,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee17",
+	"ec2IpAddress": "10.0.5.17",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -5959,6 +6049,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa18",
+	"ec2IpAddress": "10.0.1.18",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -5967,6 +6058,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb18",
+	"ec2IpAddress": "10.0.2.18",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -6072,6 +6164,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc18",
+	"ec2IpAddress": "10.0.3.18",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -6129,6 +6222,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd18",
+	"ec2IpAddress": "10.0.4.18",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -6137,6 +6231,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee18",
+	"ec2IpAddress": "10.0.5.18",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,
@@ -6290,6 +6385,7 @@
   },
   {
 	"ec2InstanceId": "i-aaaaaa19",
+	"ec2IpAddress": "10.0.1.19",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -6298,6 +6394,7 @@
   },
   {
 	"ec2InstanceId": "i-bbbbbb19",
+	"ec2IpAddress": "10.0.2.19",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 960,
@@ -6403,6 +6500,7 @@
   },
   {
 	"ec2InstanceId": "i-cccccc19",
+	"ec2IpAddress": "10.0.3.19",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -6460,6 +6558,7 @@
   },
   {
 	"ec2InstanceId": "i-dddddd19",
+	"ec2IpAddress": "10.0.4.19",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 2048,
@@ -6468,6 +6567,7 @@
   },
   {
 	"ec2InstanceId": "i-eeeeee19",
+	"ec2IpAddress": "10.0.5.19",
 	"registeredCPU": 2048,
 	"registeredMemory": 16000,
 	"remainingCPU": 536,

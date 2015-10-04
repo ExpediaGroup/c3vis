@@ -9,6 +9,8 @@
 * Sliding timebar to see historical data for comparison (like google street view)
 * Show container actual memory utilisation vs reserved memory utilisation
 * Write a plugin system that lets adopters plugin their own statistics from favourite monitoring tool
+* Pluggable backend system that could support other public or private cloud providers
+* Provide access to more troubleshooting information (such as docker logs, ECS logs)
 * Cache responses server-side to reduce AWS API calls
 * Make the data transfer between client and server more efficient - Separate requests for task and instance data and populate graph asynchronously
 * Arrow functions: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
