@@ -27,6 +27,7 @@ var utils = require('./utils');
 
 var ecs = new AWS.ECS();
 var ec2 = new AWS.EC2();
+var maxSize = 100;
 
 /* Home page */
 
@@ -52,25 +53,17 @@ router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
       getTasksWithTaskDefinitions(cluster)
         .then(function (tasksResult) {
           tasksArray = tasksResult;
-          // TODO: Return more than 100 instances.
-          // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/ECS.html#listContainerInstances-property
-          // maxResults — (Integer) The maximum number of container instance results returned by ListContainerInstances in paginated output.
-          // When this parameter is used, ListContainerInstances only returns maxResults results in a single page along with a nextToken response element.
-          // The remaining results of the initial request can be seen by sending another ListContainerInstances request with the returned nextToken value.
-          // This value can be between 1 and 100. If this parameter is not used, then ListContainerInstances returns up to 100 results and a nextToken value if applicable.
-          return ecs.listContainerInstances({cluster: cluster, maxResults: 100}).promise()
+            return listAllContainerInstances(cluster);
         })
-        .then(function (listContainerInstancesResponse) {
-          if (listContainerInstancesResponse.data.containerInstanceArns.length == 0) {
+        .then(function (listAllContainerInstanceArns) {
+          if (listAllContainerInstanceArns.length == 0) {
             return new Promise(function (resolve, reject) {
               resolve(null);
             });
           } else {
-            // TODO: To return more than 100 instances, process listContainerInstancesResponse.data.nextToken
-            // ... by sending nextToken to ecs.listContainerInstances and accumulating containerInstanceArns before calling describeContainerInstances
             return ecs.describeContainerInstances({
-              cluster: cluster,
-              containerInstances: listContainerInstancesResponse.data.containerInstanceArns
+                cluster: cluster,
+                containerInstances: listAllContainerInstanceArns
             }).promise();
           }
         })
@@ -103,7 +96,7 @@ router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
                   "remainingCPU": utils.remainingCPU(instance),
                   "remainingMemory": utils.remainingMemory(instance),
                   "tasks": tasksArray.filter(function (t) {
-                    return t.containerInstanceArn == instance.containerInstanceArn
+                      return t.containerInstanceArn == instance.containerInstanceArn;
                   })
                 }
               });
@@ -137,47 +130,111 @@ router.get('/api/cluster_names', function (req, res, next) {
   }
 });
 
+function listAllContainerInstances(cluster) {
+    return new Promise(function (resolve, reject) {
+        listContainerInstanceWithToken(cluster, null, [])
+            .then (function(containerInstanceArns) {
+                resolve(containerInstanceArns);
+            }).catch (function (err) {
+                reject(err);
+            });
+    });
+}
+
+function listContainerInstanceWithToken(cluster, token, instanceArns) {
+    var params = {cluster: cluster, maxResults: maxSize};
+    if (token) {
+        params['nextToken'] = token;
+    }
+    return ecs.listContainerInstances(params).promise()
+            .then(function(listContainerInstanceResponse) {
+                var containerInstanceArns = instanceArns.concat(listContainerInstanceResponse.data.containerInstanceArns);
+                var nextToken = listContainerInstanceResponse.data.nextToken;
+                if (containerInstanceArns.length == 0) {
+                    return [];
+                } else if (nextToken) {
+                    return listContainerInstanceWithToken(cluster, nextToken, containerInstanceArns);
+                } else {
+                    return containerInstanceArns;
+                }
+            });
+}
+
+function listAllTasks(cluster) {
+    return new Promise(function (resolve, reject) {
+        listTasksWithToken(cluster, null, [])
+            .then (function(allTasks) {
+                resolve(allTasks);
+            }).catch (function (err) {
+                reject(err);
+            });
+    });
+}
+
+function listTasksWithToken(cluster, token, tasks) {
+    var params = {cluster: cluster, maxResults: maxSize};
+    if (token) {
+        params['nextToken'] = token;
+    }
+    return ecs.listTasks(params).promise()
+            .then(function(tasksResponse) {
+                var taskArns = tasks.concat(tasksResponse.data.taskArns);
+                var nextToken = tasksResponse.data.nextToken;
+                if (taskArns.length == 0) {
+                    return [];
+                } else if (nextToken) {
+                    return listTasksWithToken(cluster, nextToken, taskArns);
+                } else {
+                    return taskArns;
+                }
+            });
+}
+
 function getTasksWithTaskDefinitions(cluster) {
   return new Promise(function (resolve, reject) {
     var tasksArray = [];
-    ecs.listTasks({cluster: cluster}).promise()
-      .then(function (listTasksResponse) {
-        console.log("listTasksResponse.taskArns: " + listTasksResponse.data.taskArns);
-        if (listTasksResponse.data.taskArns.length == 0) {
-          // No tasks
-          resolve([]);
-        } else {
-          return ecs.describeTasks({
-            cluster: cluster,
-            tasks: listTasksResponse.data.taskArns
-          }).promise();
-        }
-      })
-      .then(function (describeTasksResponse) {
-        tasksArray = describeTasksResponse.data.tasks;
-        return Promise.all(tasksArray.map(function (t) {
-          return ecs.describeTaskDefinition({
-            taskDefinition: t.taskDefinitionArn
-          }).promise()
-        }))
-      })
-      .then(function (taskDefs) {
-        // Fill in task details in tasksArray with taskDefinition details (e.g. memory, cpu)
-        taskDefs.forEach(function (taskDef) {
-          tasksArray
-            .filter(function (t) {
-              return t["taskDefinitionArn"] == taskDef.data.taskDefinition.taskDefinitionArn;
-            })
-            .forEach(function (t) {
-              t["taskDefinition"] = taskDef.data.taskDefinition;
+      listAllTasks(cluster)
+          .then(function (allTaskArns) {
+              if (allTaskArns.length == 0) {
+                  resolve([]);
+              } else {
+                  var all = allTaskArns.map(function (tasks, index) {
+                      return index % maxSize===0 ? allTaskArns.slice(index, index + maxSize) : null;
+                  }).filter(function(tasks) {
+                      return tasks;
+                  });
+                  return Promise.all(all.map(function (tasks){
+                      return ecs.describeTasks({cluster: cluster, tasks: tasks}).promise();
+                  }));
+              }
+          })
+          .then(function (describeTasksResponse) {
+              tasksArray = describeTasksResponse.reduce(function(previous, current){
+                  return previous.data.tasks.concat(current.data.tasks);
+              });
+            return Promise.all(tasksArray.map(function (task) {
+                return ecs.describeTaskDefinition({
+                    taskDefinition: task.taskDefinitionArn
+                }).promise();
+            }));
+        })
+        .then(function (taskDefs) {
+            // Fill in task details in tasksArray with taskDefinition details (e.g. memory, cpu)
+            taskDefs.forEach(function (taskDef) {
+            tasksArray
+                .filter(function (t) {
+                return t["taskDefinitionArn"] == taskDef.data.taskDefinition.taskDefinitionArn;
+                })
+                .forEach(function (t) {
+                t["taskDefinition"] = taskDef.data.taskDefinition;
+                });
             });
+            resolve(tasksArray);
+        })
+        .catch(function (err) {
+            reject(err);
         });
-        resolve(tasksArray);
-      })
-      .catch(function (err) {
-        reject(err)
-      });
-  });
+    });
 }
 
 function send400Response(errMsg, res) {

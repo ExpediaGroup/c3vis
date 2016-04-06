@@ -127,7 +127,7 @@ Browse to `<docker localhost>:3000` (e.g. [http://192.168.99.100:3000](http://19
 
 # Credits
 
-Created by [Matt Callanan](https://github.com/mattcallanan) with thanks to internal Expedia reviewers for their suggestions and advice.
+Created by [Matt Callanan](https://github.com/mattcallanan) with contributions from [Mark Malone](https://github.com/malonem) and with thanks to internal Expedia reviewers for their suggestions and advice.
 
 
 # Legal
