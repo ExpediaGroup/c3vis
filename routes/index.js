@@ -3,6 +3,7 @@ var router = express.Router();
 var fs = require('fs');
 // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html
 var AWS = require('aws-sdk-promise');
+var sleep = require('sleep');
 // AWS variable now has default credentials from Shared Credentials File or Environment Variables.
 // Override default credentials with ./aws_config.json if it exists
 var DEFAULT_AWS_REGION = 'us-east-1';
@@ -190,6 +191,17 @@ function listTasksWithToken(cluster, token, tasks) {
             });
 }
 
+function findTaskDefinition(task, attempt) {
+    return ecs.describeTaskDefinition({taskDefinition: task.taskDefinitionArn}).promise().catch(function (err) {
+        sleep.sleep(attempt);
+        if (attempt <= 5) {
+            return findTaskDefinition(task, ++attempt);
+        } else {
+            return Promise.reject(err);
+        }
+    });
+}
+
 function getTasksWithTaskDefinitions(cluster) {
   return new Promise(function (resolve, reject) {
     var tasksArray = [];
@@ -209,14 +221,12 @@ function getTasksWithTaskDefinitions(cluster) {
               }
           })
           .then(function (describeTasksResponse) {
-              tasksArray = describeTasksResponse.reduce(function(previous, current){
-                  return previous.data.tasks.concat(current.data.tasks);
-              });
-            return Promise.all(tasksArray.map(function (task) {
-                return ecs.describeTaskDefinition({
-                    taskDefinition: task.taskDefinitionArn
-                }).promise();
-            }));
+                tasksArray = describeTasksResponse.reduce(function(previous, current){
+                    return previous.concat(current.data.tasks);
+                }, []);
+              return Promise.all(tasksArray.map(function (task) {
+                  return findTaskDefinition(task, 1);
+              }));
         })
         .then(function (taskDefs) {
             // Fill in task details in tasksArray with taskDefinition details (e.g. memory, cpu)
