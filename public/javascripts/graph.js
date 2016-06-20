@@ -77,6 +77,8 @@ function drawGraph(useStaticData, cluster, onCompletion, onError) {
     d3.json(c3visApiUrl, function (error, data) {
       // TODO: Display multiple graphs if server returns > 100 instances
 
+      console.log(data);
+
       try {
         window.error = error;
         window.instance_summaries_with_tasks = data;
@@ -268,35 +270,38 @@ function drawGraph(useStaticData, cluster, onCompletion, onError) {
             });
 
           // Draw legend
+
+          var taskData = uniqueTaskDefs.sort();
+
           // TODO: Add hover highlight of related blocks
           var svg2 = d3.select("#div-legend")
                 .append("svg")
                 .attr("class", "cluster-legend")
                 .attr("id", "cluster-legend")
                 .attr("width", 200)
-                .attr("height", (20 * data.length) + 20);
+                .attr("height", (20 * taskData.length) + 20);
 
           var legend = svg2.append("g")
                 .attr("class", "legend");
 
           legend.selectAll('rect')
-                .data(data)
+                .data(taskData)
                 .enter()
                 .append("rect")
                 .attr("y", function(d, i) { return ((i *  20) + topMargin); })
                 .attr("width", 18)
                 .attr("height", 18)
-                .style("fill", function (d) { return colorRange(d.ec2InstanceId); });
+                .style("fill", function (d) { return colorRange(d); });
 
           legend.selectAll('text')
-                .data(data)
+                .data(taskData)
                 .enter()
                 .append("text")
                 .attr("x", 25)
                 .attr("width", 5)
                 .attr("height", 5)
                 .attr("y", function(d, i) { return ((i *  20) + topMargin + 12); })
-                .text(function(d) { return d.ec2InstanceId; });
+                .text(function(d) { return d; });
 
           
 
