@@ -21,9 +21,10 @@
     shape-rendering: crispEdges;
 }
 
-.legend-task-block {
-    stroke: #777;
-    shape-rendering: crispEdges;
+#div-legend {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 525px;
 }
 
 /* Bootstrap overrides */

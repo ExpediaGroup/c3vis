@@ -60,7 +60,7 @@ function copyToClipboard(text) {
   }
 }
 
-function drawGraph(targetNode, useStaticData, cluster, onCompletion, onError) {
+function drawGraph(useStaticData, cluster, onCompletion, onError) {
   try {
     var showTaskBreakdown = true;  // TODO: Parameterise
 
@@ -73,8 +73,10 @@ function drawGraph(targetNode, useStaticData, cluster, onCompletion, onError) {
     var optionalStaticParam = (useStaticData ? "&static=true" : "");
     var c3visApiUrl = "/api/instance_summaries_with_tasks?" + clusterParam + optionalStaticParam;
 
+    // after a GET all data from API begin drawing graph
     d3.json(c3visApiUrl, function (error, data) {
       // TODO: Display multiple graphs if server returns > 100 instances
+
       try {
         window.error = error;
         window.instance_summaries_with_tasks = data;
@@ -82,11 +84,11 @@ function drawGraph(targetNode, useStaticData, cluster, onCompletion, onError) {
 
         var topMargin = 20;
         var bottomMargin = 100;
-        var rightMargin = 400;
+        var rightMargin = 50;
         var leftMargin = 50;
-        var graphWidth = (data.length > 50 ? 1600 : 1300) - leftMargin - rightMargin;
+        var graphWidth = (data.length > 50 ? 1300 : 1000) - leftMargin - rightMargin; //establishes width based on data set size
         var graphHeight = 520 - topMargin - bottomMargin;
-        var totalHeight = 2000;
+        var totalHeight = 400;
 
         var colorRange = d3.scale.ordinal().range(colorbrewer.Pastel1[9].concat(colorbrewer.Pastel2[8]).concat(colorbrewer.Set1[9]).concat(colorbrewer.Set2[8]).concat(colorbrewer.Set3[12]));
         var xRange = d3.scale.ordinal().rangeRoundBands([10, graphWidth], .1);
@@ -95,13 +97,14 @@ function drawGraph(targetNode, useStaticData, cluster, onCompletion, onError) {
         var yAxis = d3.svg.axis().scale(yRange).orient("left").tickFormat(d3.format(".2s"));
 
         // Main graph area
-        d3.select("svg").remove();
-        var graph = d3.select(targetNode)
+        d3.selectAll("svg").remove();
+        var graph = d3.select("#div-chart")
           .append("svg")
           .attr("class", "cluster-graph")
           .attr("id", "cluster-graph")
           .attr("width", graphWidth + leftMargin + rightMargin)
           .attr("height", totalHeight + topMargin + bottomMargin)
+          .attr("float", "left")
           .append("g").attr("transform", "translate(" + leftMargin + "," + topMargin + ")");
 
         if (error) {
@@ -265,30 +268,38 @@ function drawGraph(targetNode, useStaticData, cluster, onCompletion, onError) {
             });
 
           // Draw legend
-          var legend = graph.selectAll(".legend")
-            .data(colorRange.domain().slice())
-            .enter().append("g")
-            .attr("class", "legend")
-            .attr("transform", function (d, i) {
-              return "translate(0," + i * 20 + ")";
-            });
-
           // TODO: Add hover highlight of related blocks
-          legend.append("rect")
-            .attr("x", graphWidth)
-            .attr("class", "legend-task-block")
-            // 'width' and 'height' are SVG attributes - not CSS properties, CSS only works in Chrome
-            .attr("width", 18)
-            .attr("height", 18)
-            .style("fill", colorRange);
+          var svg2 = d3.select("#div-legend")
+                .append("svg")
+                .attr("class", "cluster-legend")
+                .attr("id", "cluster-legend")
+                .attr("width", 200)
+                .attr("height", (20 * data.length) + 20);
 
-          legend.append("text")
-            .attr("x", graphWidth + 24)
-            .attr("y", 9)
-            .attr("dy", ".35em")
-            .text(function (d) {
-              return d;
-            });
+          var legend = svg2.append("g")
+                .attr("class", "legend");
+
+          legend.selectAll('rect')
+                .data(data)
+                .enter()
+                .append("rect")
+                .attr("y", function(d, i) { return ((i *  20) + topMargin); })
+                .attr("width", 18)
+                .attr("height", 18)
+                .style("fill", function (d) { return colorRange(d.ec2InstanceId); });
+
+          legend.selectAll('text')
+                .data(data)
+                .enter()
+                .append("text")
+                .attr("x", 25)
+                .attr("width", 5)
+                .attr("height", 5)
+                .attr("y", function(d, i) { return ((i *  20) + topMargin + 12); })
+                .text(function(d) { return d.ec2InstanceId; });
+
+          
+
         } else {
           // For each each server, represent total memory usage as a single orange rect
           instance.append("rect")
