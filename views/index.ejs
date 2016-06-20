@@ -73,7 +73,7 @@
       function redrawGraph() {
         if ($("#clusterChoice").val()) {
           spinner.spin(document.body);
-          drawGraph("body", staticData(), $("#clusterChoice").val(), stopSpinner, stopSpinner);
+          drawGraph(staticData(), $("#clusterChoice").val(), stopSpinner, stopSpinner);
         }
       }
       function staticData() {
@@ -106,6 +106,13 @@
         </div>
       </div>
     </nav>
+
+    <div id="row" style="display:table;">
+      <div id="table-row" style="display:table-row;">
+        <div id="div-chart" style="display:table-cell;vertical-align:top;"></div>
+        <div id="div-legend" style="display:fixed;right:0;"></div>
+      </div>
+    </div>
 
     <script>
       $(".dropdown-menu li a").click(function(){
