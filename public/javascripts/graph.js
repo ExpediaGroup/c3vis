@@ -272,13 +272,14 @@ function drawGraph(useStaticData, cluster, onCompletion, onError) {
           // Draw legend
 
           var taskData = uniqueTaskDefs.sort();
+          var longestLength = taskData.sort(function (a, b) { return b.length - a.length; })[0].length;
 
           // TODO: Add hover highlight of related blocks
           var svg2 = d3.select("#div-legend")
                 .append("svg")
                 .attr("class", "cluster-legend")
                 .attr("id", "cluster-legend")
-                .attr("width", 200)
+                .attr("width", (longestLength * 10) + 20)
                 .attr("height", (20 * taskData.length) + 20);
 
           var legend = svg2.append("g")
