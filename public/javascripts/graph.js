@@ -272,7 +272,7 @@ function drawGraph(useStaticData, cluster, onCompletion, onError) {
           // Draw legend
 
           var taskData = uniqueTaskDefs.sort();
-          var longestLength = taskData.sort(function (a, b) { return b.length - a.length; })[0].length;
+          var longestLength = taskData.reduce(function (a, b) { return a.length > b.length ? a : b; }).length;
 
           // TODO: Add hover highlight of related blocks
           var svg2 = d3.select("#div-legend")
@@ -292,7 +292,9 @@ function drawGraph(useStaticData, cluster, onCompletion, onError) {
                 .attr("y", function(d, i) { return ((i *  20) + topMargin); })
                 .attr("width", 18)
                 .attr("height", 18)
-                .style("fill", function (d) { return colorRange(d); });
+                .style("fill", function (d) { return colorRange(d); })
+                .style("stroke-width", 0.5)
+                .style("stroke", "rgb(51, 51, 51)");
 
           legend.selectAll('text')
                 .data(taskData)
