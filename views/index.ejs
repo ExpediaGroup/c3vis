@@ -15,6 +15,7 @@
     <script src="javascripts/thirdparty/bootstrap.min.js"></script>
     <script src="javascripts/thirdparty/spin.min.js"></script>
     <script src="javascripts/thirdparty/js.cookie.js"></script>
+    <script src="javascripts/types.js"></script>
     <script src="javascripts/graph.js"></script>
     <script>
       var refreshButtonText = "[refresh list]";
@@ -73,7 +74,7 @@
       function redrawGraph() {
         if ($("#clusterChoice").val()) {
           spinner.spin(document.body);
-          drawGraph(staticData(), $("#clusterChoice").val(), stopSpinner, stopSpinner);
+          drawGraph(staticData(), $("#clusterChoice").val(), "<%= resourceType %>", stopSpinner, stopSpinner);
         }
       }
       function staticData() {

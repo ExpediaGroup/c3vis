@@ -14,12 +14,12 @@ function showInfo(graph, message) {
 }
 
 function showError(graph, message) {
-  console.error(message);
+  console.error(message || "Error");
   showMessage(graph, message, 'red');
 }
 
 function showMessage(graph, message, color) {
-  graph.append("text").attr("x", 0).attr("y", 20).attr("fill", color).text(message);
+  graph.append("text").attr("x", 0).attr("y", 20).attr("fill", color).text(message || "Error");
 }
 
 function handleError(errorMsg, graph, onError) {
@@ -60,8 +60,43 @@ function copyToClipboard(text) {
   }
 }
 
-function drawGraph(useStaticData, cluster, onCompletion, onError) {
+function addD3DataToTask(task, resourceType, y0) {
+  var resourceAllocation = task.taskDefinition.containerDefinitions.reduce(function (sum, b) { return sum + (resourceType == ResourceEnum.MEMORY ? b.memory : b.cpu); }, 0);
+  var y1 = y0 + resourceAllocation;
+  console.log('y0: ' + y0  + ', resourceAllocation: ' + resourceAllocation + ', y1: ' + y1);
+  task.d3Data = {
+    name: taskFamilyAndRevision(task),
+    resourceAllocation: resourceAllocation, // sum of all containers' resource (memory/cpu) allocation
+    y0: y0,
+    y1: y1
+  };
+  return y1;
+}
+
+function registeredResource(d, resourceType) {
+  if (resourceType == ResourceEnum.MEMORY) {
+    return d.registeredMemory;
+  } else if (resourceType == ResourceEnum.CPU) {
+    return d.registeredCpu;
+  } else {
+    handleError("Unknown resource type: " + resourceType)
+  }
+}
+
+function remainingResource(d, resourceType) {
+  if (resourceType == ResourceEnum.MEMORY) {
+    return d.remainingMemory;
+  } else if (resourceType == ResourceEnum.CPU) {
+    return d.remainingCpu;
+  } else {
+    handleError("Unknown resource type: " + resourceType)
+  }
+}
+
+function drawGraph(useStaticData, cluster, resourceType, onCompletion, onError) {
   try {
+    resourceType = parseResourceType(resourceType, ResourceEnum.MEMORY);
+    console.log("resourceType: " + resourceType);
     var showTaskBreakdown = true;  // TODO: Parameterise
 
     if (!cluster && !useStaticData) {
@@ -134,18 +169,10 @@ function drawGraph(useStaticData, cluster, onCompletion, onError) {
         colorRange.domain(uniqueTaskDefs);
 
         data.forEach(function (instance) {
+        // Add d3Data to each task for later display
           var y0 = 0;
-          instance.tasks.forEach(function (task) {
-            memoryUsage = task.taskDefinition.containerDefinitions.reduce(function (sum, b) {
-              return sum + b.memory;
-            }, 0);
-            // Add d3Data to each task for later display
-            task.d3Data = {
-              name: taskFamilyAndRevision(task),
-              totalMemory: memoryUsage, // sum of all containers' memory
-              y0: y0,
-              y1: y0 += memoryUsage
-            }
+          instance.tasks.forEach(function(task) {
+            y0 = addD3DataToTask(task, resourceType, y0);
           });
         });
 
@@ -154,12 +181,12 @@ function drawGraph(useStaticData, cluster, onCompletion, onError) {
           return d.ec2IpAddress;
         }));
 
-        // Calculate maximum memory across all servers
-        var maxMemory = d3.max(data, function (d) {
-          return d.registeredMemory;
+        // Calculate maximum resource (memory/cpu) across all servers
+        var maxResource = d3.max(data, function (d) {
+          return registeredResource(d, resourceType);
         });
-        // Set Y axis linear domain range from 0 to maximum memory in bytes
-        yRange.domain([0, toBytes(maxMemory)]);
+        // Set Y axis linear domain range from 0 to maximum memory/cpu in bytes
+        yRange.domain([0, toBytes(maxResource)]);
 
         // Draw X axis
         var xAxisLabels = graph.append("g")
@@ -191,7 +218,7 @@ function drawGraph(useStaticData, cluster, onCompletion, onError) {
         xAxisLabels.selectAll("text")
           .attr("cursor", "pointer")
           .on('contextmenu', d3.contextMenu(menu))
-          // Use ecsInstanceConsoleUrl as hover tooltip
+          // X axis tooltip
           .append("svg:title")
           .text(function (d) {
             return "Right-click for options";
@@ -222,7 +249,7 @@ function drawGraph(useStaticData, cluster, onCompletion, onError) {
           .attr("y", 6)
           .attr("dy", ".71em")
           .style("text-anchor", "end")
-          .text("Memory");
+          .text(resourceLabel(resourceType));
 
         // TODO: Request task data in parallel with instance data. Draw instance outline first then draw task boxes
         // Create svg elements for each server
@@ -234,19 +261,19 @@ function drawGraph(useStaticData, cluster, onCompletion, onError) {
             return "translate(" + xRange(d.ec2IpAddress) + ",0)";
           });
 
-        // For each server, draw entire memory available as grey rect
+        // For each server, draw entire resource (memory/cpu) available as grey rect
         instance.append("rect")
           .attr("class", "instance-block")
           .attr("width", xRange.rangeBand())
           .attr("y", function (d) {
-            return yRange(toBytes(d.registeredMemory))
+            return yRange(toBytes(registeredResource(d, resourceType)))
           })
           .attr("height", function (d) {
-            return yRange(toBytes(maxMemory - d.registeredMemory));
+            return yRange(toBytes(maxResource - (registeredResource(d, resourceType))));
           });
 
         if (showTaskBreakdown) {
-          // For each task on each server, represent memory usage as a rect
+          // For each task on each server, represent resource (memory/cpu) allocation as a rect
           instance.selectAll(".task")
             .data(function (d) {
               return d.tasks;
@@ -266,7 +293,7 @@ function drawGraph(useStaticData, cluster, onCompletion, onError) {
             // Use name as hover tooltip
             .append("svg:title")
             .text(function (d) {
-              return d.d3Data.name;
+              return d.d3Data.name + "  (" + resourceLabel(resourceType) + ": " + d.d3Data.resourceAllocation + ")";
             });
 
           // Draw legend
@@ -309,15 +336,15 @@ function drawGraph(useStaticData, cluster, onCompletion, onError) {
           
 
         } else {
-          // For each each server, represent total memory usage as a single orange rect
+          // For each each server, represent total cpu allocation as a single orange rect
           instance.append("rect")
             .attr("width", xRange.rangeBand())
             .attr("y", function (d) {
-              var usedMemory = toBytes(d.registeredMemory) - toBytes(d.remainingMemory);
-              return yRange(usedMemory)
+              var usedCpu = toBytes(registeredResource(d, resourceType)) - toBytes(remainingResource(d, resourceType));
+              return yRange(usedCpu)
             })
             .attr("height", function (d) {
-              return yRange(toBytes(d.remainingMemory)) - yRange(toBytes(d.registeredMemory));
+              return yRange(toBytes(remainingResource(d, resourceType))) - yRange(toBytes(registeredResource(d, resourceType)));
             })
             .style("fill", "orange")
             .style("stroke", "grey");

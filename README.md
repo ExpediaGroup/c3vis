@@ -11,13 +11,9 @@ The Cloud Container Cluster Visualizer (c3vis) aims to give administrators and t
 
 ![alt tag](docs/graph.png)
 
-The visualization displays the EC2 instances in the selected cluster as vertical bars.  The Tasks allocated to the instances are represented as stacked boxes indicating their reserved memory.
+The visualization displays the EC2 instances in the selected cluster as vertical bars.  The Tasks allocated to the instances are represented as stacked boxes indicating their reserved memory or CPU.
 Each unique Task Definition is represented as a different color, with the legend showing the Task Family name and revision number.
-Each Task will contain one or more containers, the task box shows accumulated reserved memory for all containers in the Task. ECS Services are not currently represented.
-
-### Limitations
-
-Cluster visualisation is currently limited to displaying up to the first 100 instances in a cluster. It represents reserved memory only.
+Each Task will contain one or more containers, the task box shows accumulated reserved memory or CPU for all containers in the Task. ECS Services are not currently represented.
 
 
 ## Configure
@@ -83,7 +79,7 @@ Select from the dropdown to view the resources allocated to that cluster. If no 
 
 The list of clusters and the user's current selection are stored in cookies. Use the ```[refresh list]``` dropdown entry to refresh the list of clusters.
 
-The Y axis shows total memory available for the instances.
+The Y axis shows total memory or CPU available for the instances. Memory is the default resource type represented. Use the "resourceType" query parameter to toggle between "memory" and "cpu".  E.g. ```localhost:3000/?resourceType=cpu```
 
 The X axis displays the Private IP Address for each EC2 instance. Right-clicking the IP address shows the context menu with links to browse the instance in the ECS and EC2 consoles.
 

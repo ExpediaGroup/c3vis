@@ -2,7 +2,7 @@
   * Selectable Region
   * Selectable AWS account – requires ability for mutliple config files server side
 * Show clusters as tabbed view with one cluster per tab
-* Toggle between memory vs CPU
+* Add toggle button to switch between memory vs CPU resourceType
 * Show an exploded view of task with more details when hovering over tasks:
   * Show containers within tasks
   * Show memory breakdown across containers

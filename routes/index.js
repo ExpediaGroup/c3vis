@@ -9,20 +9,11 @@ var sleep = require('sleep');
 var DEFAULT_AWS_REGION = 'us-east-1';
 var AWS_CONFIG_FILE = './aws_config.json';
 if (fs.existsSync(AWS_CONFIG_FILE)) {
-  console.log("Loading settings from '" + AWS_CONFIG_FILE + "'...");
-  AWS.config.loadFromPath(AWS_CONFIG_FILE);
+  console.log("Updating with settings from '" + AWS_CONFIG_FILE + "'...");
+  AWS.config.update(JSON.parse(fs.readFileSync(AWS_CONFIG_FILE, 'utf8')));
   console.log("  default region: " + AWS_CONFIG_FILE + ": '" + AWS.config.region + "'");
 }
-var ENV_AWS_REGION = process.env.AWS_REGION;
-if (ENV_AWS_REGION) {
-  console.log("Using AWS_REGION env value: '" + ENV_AWS_REGION + "' as default region.");
-  AWS.config.update({region: ENV_AWS_REGION});
-}
 
-if (typeof AWS.config.region == 'undefined') {
-  console.log("AWS_REGION env var not set and not provided in '" + process.cwd() + AWS_CONFIG_FILE + "' file. Defaulting region to '" + DEFAULT_AWS_REGION + "'.");
-  AWS.config.update({region: DEFAULT_AWS_REGION});
-}
 
 var utils = require('./utils');
 
@@ -33,7 +24,7 @@ var maxSize = 100;
 /* Home page */
 
 router.get('/', function(req, res, next) {
-  res.render('index', { title: 'c3vis - Cloud Container Cluster Visualizer', useStaticData: req.query.static });
+  res.render('index', { title: 'c3vis - Cloud Container Cluster Visualizer', useStaticData: req.query.static, resourceType: req.query.resourceType });
 });
 
 /* API endpoints
@@ -81,9 +72,7 @@ router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
               InstanceIds: ec2instanceIds
             }).promise()
             .then(function (ec2Instances) {
-              console.log("ec2Instances: " + ec2Instances.data.Reservations);
               var instances = [].concat.apply([], ec2Instances.data.Reservations.map(function (r) { return r.Instances }));
-              console.log("instances: " + instances);
               console.log("IPs: " + instances.map(function (i) {return i.PrivateIpAddress}));
               var instanceSummaries = containerInstances.map(function (instance) {
                 var ec2IpAddress = instances.find(function (i) {return i.InstanceId == instance.ec2InstanceId}).PrivateIpAddress;
@@ -92,9 +81,9 @@ router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
                   "ec2InstanceId": instance.ec2InstanceId,
                   "ec2InstanceConsoleUrl": "https://console.aws.amazon.com/ec2/v2/home?region=" + AWS.config.region + "#Instances:instanceId=" + instance.ec2InstanceId,
                   "ecsInstanceConsoleUrl": "https://console.aws.amazon.com/ecs/home?region=" + AWS.config.region + "#/clusters/" + cluster + "/containerInstances/" + instance["containerInstanceArn"].substring(instance["containerInstanceArn"].lastIndexOf("/") + 1),
-                  "registeredCPU": utils.registeredCPU(instance),
+                  "registeredCpu": utils.registeredCpu(instance),
                   "registeredMemory": utils.registeredMemory(instance),
-                  "remainingCPU": utils.remainingCPU(instance),
+                  "remainingCpu": utils.remainingCpu(instance),
                   "remainingMemory": utils.remainingMemory(instance),
                   "tasks": tasksArray.filter(function (t) {
                       return t.containerInstanceArn == instance.containerInstanceArn;
