@@ -1,5 +1,5 @@
 module.exports = {
-  registeredCPU: function (instance) {
+  registeredCpu: function (instance) {
     return instance["registeredResources"].find(function (element, index, array) {return element.name == 'CPU'}).integerValue;
   },
   registeredMemory: function (instance) {
@@ -8,7 +8,7 @@ module.exports = {
   registeredPorts: function (instance) {
     return instance["registeredResources"].find(function (element, index, array) {return element.name == 'PORTS'}).integerValue;
   },
-  remainingCPU: function (instance) {
+  remainingCpu: function (instance) {
     return instance["remainingResources"].find(function (element, index, array) {return element.name == 'CPU'}).integerValue;
   },
   remainingMemory: function (instance) {
