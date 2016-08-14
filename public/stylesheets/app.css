@@ -21,10 +21,29 @@
     shape-rendering: crispEdges;
 }
 
-#div-legend {
-    overflow-y: auto;
-    overflow-x: hidden;
+.container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
     height: 525px;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.chart {
+    flex-basis: max-content;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.legend {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding-left: 2px;
+    padding-right: 2px;
 }
 
 /* Bootstrap overrides */

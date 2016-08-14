@@ -6,6 +6,7 @@
     <title><%= title %></title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel='stylesheet' href='stylesheets/thirdparty/bootstrap.min.css' />
+    <link rel='stylesheet' href='stylesheets/thirdparty/bootstrap-switch.min.css' />
     <link rel='stylesheet' href='stylesheets/app.css' />
     <link rel="stylesheet" href="stylesheets/thirdparty/d3-context-menu.css" />
     <script src="javascripts/thirdparty/d3.min.js"></script>
@@ -13,11 +14,14 @@
     <script src="javascripts/thirdparty/colorbrewer.js"></script>
     <script src="javascripts/thirdparty/jquery.min.js"></script>
     <script src="javascripts/thirdparty/bootstrap.min.js"></script>
+    <script src="javascripts/thirdparty/bootstrap-switch.min.js"></script>
     <script src="javascripts/thirdparty/spin.min.js"></script>
     <script src="javascripts/thirdparty/js.cookie.js"></script>
     <script src="javascripts/types.js"></script>
     <script src="javascripts/graph.js"></script>
     <script>
+      // Initialise resourceType to query param
+      var resourceType = resourceTypeParam();
       var refreshButtonText = "[refresh list]";
       var spinner = new Spinner();
       var stopSpinner = function () { spinner.stop() };
@@ -51,7 +55,7 @@
           if ($("#clusterChoice").val() == refreshButtonText) {
               refreshClusterDropdown();
             } else {
-              redrawGraph();
+              repopulateGraph();
             setClusterCookie($("#clusterChoice").val());
             }
         });
@@ -71,11 +75,22 @@
                 .html(refreshButtonText)
                 .appendTo(clusterSelect);
       }
-      function redrawGraph() {
+      function repopulateGraph() {
+        // Fetch data from API and generate graph
         if ($("#clusterChoice").val()) {
           spinner.spin(document.body);
-          drawGraph(staticData(), $("#clusterChoice").val(), "<%= resourceType %>", stopSpinner, stopSpinner);
+          populateGraph(staticData(), "chart", "legend", $("#clusterChoice").val(), resourceType, stopSpinner, stopSpinner);
         }
+      }
+      function rerenderGraph() {
+        // Redisplay graph using previously retrieved data
+        if ($("#clusterChoice").val()) {
+          spinner.spin(document.body);
+          renderGraph("chart", "legend", $("#clusterChoice").val(), resourceType, stopSpinner, stopSpinner);
+        }
+      }
+      function resourceTypeParam() {
+        return "<%= resourceType %>";
       }
       function staticData() {
         return <%= useStaticData %>;
@@ -105,14 +120,25 @@
             </div>
           </form>
         </div>
+        <!--<div class="navbar-text navbar-text-closer-right">Resource:</div>-->
+        <div>
+          <div class="navbar-form navbar-left">
+            <div class="btn-group" data-toggle="buttons">
+              <label class="btn btn-primary <%= resourceType.toLowerCase().trim() == "memory" ? "active" : "" %>" id="memory-radio-label">
+                <input type="radio" id="memory-radio" autocomplete="off" <%= resourceType.toLowerCase().trim() == "memory" ? "checked" : "" %>> Memory
+              </label>
+              <label class="btn btn-primary <%= resourceType.toLowerCase().trim() == "cpu" ? "active" : "" %>" id = "cpu-radio-label">
+                <input type="radio" id="cpu-radio" autocomplete="off"<%= resourceType.toLowerCase().trim() == "cpu" ? "checked" : "" %>> CPU
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
     </nav>
 
-    <div id="row" style="display:table;">
-      <div id="table-row" style="display:table-row;">
-        <div id="div-chart" style="display:table-cell;vertical-align:top;"></div>
-        <div id="div-legend" style="display:fixed;right:0;"></div>
-      </div>
+    <div class="container">
+        <div id="chart" class="chart"></div>
+        <div id="legend" class="legend"></div>
     </div>
 
     <script>
@@ -130,12 +156,18 @@
         $.getJSON("/api/cluster_names" + (staticData() ? "?static=true" : ""), function(data) {
           setClustersCookie(data.toString());
           buildClusterDropdown(data.toString(), clusterChoiceCookie);
-          redrawGraph();
+          repopulateGraph();
         });
       } else {
         buildClusterDropdown(clusterListCookie, clusterChoiceCookie);
-        redrawGraph();
+        repopulateGraph();
       }
+      $()
+      // When 'Memory' or 'CPU' button is clucked, set resourceType var and call renderGraph();
+      $(".btn-primary").click(function() {
+        resourceType = $(this).text().trim();
+        rerenderGraph();
+      });
     </script>
 
   </body>

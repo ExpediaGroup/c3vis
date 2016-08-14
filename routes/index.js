@@ -24,7 +24,7 @@ var maxSize = 100;
 /* Home page */
 
 router.get('/', function(req, res, next) {
-  res.render('index', { title: 'c3vis - Cloud Container Cluster Visualizer', useStaticData: req.query.static, resourceType: req.query.resourceType });
+  res.render('index', { title: 'c3vis - Cloud Container Cluster Visualizer', useStaticData: req.query.static, resourceType: req.query.resourceType ? req.query.resourceType : 'memory' });
 });
 
 /* API endpoints
