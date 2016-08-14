@@ -8,7 +8,6 @@ var ResourceEnum = {
 };
 
 function parseResourceType(input, defaultResourceType) {
-    console.log("input: " + input);
     if (!input) {
         console.log("No resourceType provided, defaulting to default: " + defaultResourceType);
         return defaultResourceType;
