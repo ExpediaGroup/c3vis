@@ -14,7 +14,7 @@
     "express": "4.12.4",
     "morgan": "1.5.3",
     "serve-favicon": "2.2.1",
-    "aws-sdk": "2.1.36",
+    "aws-sdk": "2.5.3",
     "aws-sdk-promise": "0.0.2",
     "sleep": "3.0.1"
   },
