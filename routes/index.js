@@ -216,9 +216,9 @@ function getTasksWithTaskDefinitions(cluster) {
               }
           })
           .then(function (taskBatches) {
-              // Batch the batches :) - describe up to 10 batches of batches of maxSize ARNs at a time
+              // Batch the batches :) - describe up to 2 batches of batches of maxSize ARNs at a time
               // Without batchPromises, we will fire all ecs.describeTasks calls one after the other and could run into API rate limit issues
-              return batchPromises(10, taskBatches, taskBatch => new Promise((resolve, reject) => {
+              return batchPromises(2, taskBatches, taskBatch => new Promise((resolve, reject) => {
                 // The iteratee will fire after each batch
                 //console.log("\nCalling ecs.describeTasks for", taskBatch);
                 resolve(ecs.describeTasks({cluster: cluster, tasks: taskBatch}).promise());
@@ -229,9 +229,9 @@ function getTasksWithTaskDefinitions(cluster) {
                     return acc.concat(current.data.tasks);
                 }, []);
                 console.log("\Found", tasksArray.length, "tasks");
-                // Wait for the responses from 100 describeTaskDefinition calls before invoking another 100 calls
+                // Wait for the responses from 20 describeTaskDefinition calls before invoking another 20 calls
                 // Without batchPromises, we will fire all ecs.describeTaskDefinition calls one after the other and could run into API rate limit issues
-                return batchPromises(100, tasksArray, task => new Promise((resolve, reject) => {
+                return batchPromises(20, tasksArray, task => new Promise((resolve, reject) => {
                     //console.log("Calling describeTaskDefinition for", task.taskDefinitionArn);
                     resolve(ecs.describeTaskDefinition({taskDefinition: task.taskDefinitionArn}).promise()
                         .then(function (taskDefinition) {
