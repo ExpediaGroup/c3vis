@@ -4,9 +4,9 @@ var fs = require('fs');
 // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html
 var AWS = require('aws-sdk-promise');
 var sleep = require('sleep');
+var batchPromises = require('batch-promises');
 // AWS variable now has default credentials from Shared Credentials File or Environment Variables.
 // Override default credentials with ./aws_config.json if it exists
-var DEFAULT_AWS_REGION = 'us-east-1';
 var AWS_CONFIG_FILE = './aws_config.json';
 if (fs.existsSync(AWS_CONFIG_FILE)) {
   console.log("Updating with settings from '" + AWS_CONFIG_FILE + "'...");
@@ -67,13 +67,14 @@ router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
           } else {
             containerInstances = describeContainerInstancesResponse.data.containerInstances;
             var ec2instanceIds = containerInstances.map(function (i) { return i.ec2InstanceId; });
-            console.log("ec2InstanceIds: " + ec2instanceIds);
+            console.log("\nFound the following", ec2instanceIds.length, "ec2InstanceIds in cluster '", cluster, "':", ec2instanceIds);
             return ec2.describeInstances({
               InstanceIds: ec2instanceIds
             }).promise()
             .then(function (ec2Instances) {
               var instances = [].concat.apply([], ec2Instances.data.Reservations.map(function (r) { return r.Instances }));
-              console.log("IPs: " + instances.map(function (i) {return i.PrivateIpAddress}));
+              var privateIpAddresses = instances.map(function (i) {return i.PrivateIpAddress});
+              console.log("\nMatching Private IP addressess:", privateIpAddresses);
               var instanceSummaries = containerInstances.map(function (instance) {
                 var ec2IpAddress = instances.find(function (i) {return i.InstanceId == instance.ec2InstanceId}).PrivateIpAddress;
                 return {
@@ -166,8 +167,10 @@ function listTasksWithToken(cluster, token, tasks) {
     if (token) {
         params['nextToken'] = token;
     }
+    //console.log("\nCalling ecs.listTasks with token", token);
     return ecs.listTasks(params).promise()
             .then(function(tasksResponse) {
+                //console.log("\nReceived tasksResponse", tasksResponse);
                 var taskArns = tasks.concat(tasksResponse.data.taskArns);
                 var nextToken = tasksResponse.data.nextToken;
                 if (taskArns.length == 0) {
@@ -175,6 +178,7 @@ function listTasksWithToken(cluster, token, tasks) {
                 } else if (nextToken) {
                     return listTasksWithToken(cluster, nextToken, taskArns);
                 } else {
+                    //console.log("\nReturning taskArns from listTasksWithToken", taskArns);
                     return taskArns;
                 }
             });
@@ -184,53 +188,78 @@ function findTaskDefinition(task, attempt) {
     return ecs.describeTaskDefinition({taskDefinition: task.taskDefinitionArn}).promise().catch(function (err) {
         sleep.sleep(attempt);
         if (attempt <= 5) {
+            //console.log("\n  Reattempting findTaskDefinition for", task.taskDefinitionArn);
             return findTaskDefinition(task, ++attempt);
         } else {
+            //console.log("\n  REJECTing findTaskDefinition for", task.taskDefinitionArn, "after", attempt, "attempts");
             return Promise.reject(err);
         }
     });
 }
 
 function getTasksWithTaskDefinitions(cluster) {
+  console.log("Getting Tasks annotated with Task Definitions for cluster '", cluster, "'...");
   return new Promise(function (resolve, reject) {
     var tasksArray = [];
       listAllTasks(cluster)
           .then(function (allTaskArns) {
               if (allTaskArns.length == 0) {
+                  console.log("\nNo Task ARNs found");
                   resolve([]);
               } else {
-                  var all = allTaskArns.map(function (tasks, index) {
+                  var taskBatches = allTaskArns.map(function (tasks, index) {
                       return index % maxSize===0 ? allTaskArns.slice(index, index + maxSize) : null;
                   }).filter(function(tasks) {
                       return tasks;
                   });
-                  return Promise.all(all.map(function (tasks){
-                      return ecs.describeTasks({cluster: cluster, tasks: tasks}).promise();
-                  }));
+                  return taskBatches;
               }
           })
-          .then(function (describeTasksResponse) {
-                tasksArray = describeTasksResponse.reduce(function(previous, current){
-                    return previous.concat(current.data.tasks);
-                }, []);
-              return Promise.all(tasksArray.map(function (task) {
-                  return findTaskDefinition(task, 1);
+          .then(function (taskBatches) {
+              // Batch the batches :) - describe up to 10 batches of batches of maxSize ARNs at a time
+              // Without batchPromises, we will fire all ecs.describeTasks calls one after the other and could run into API rate limit issues
+              return batchPromises(10, taskBatches, taskBatch => new Promise((resolve, reject) => {
+                // The iteratee will fire after each batch
+                //console.log("\nCalling ecs.describeTasks for", taskBatch);
+                resolve(ecs.describeTasks({cluster: cluster, tasks: taskBatch}).promise());
               }));
+          })
+          .then(function (describeTasksResponses) {
+                tasksArray = describeTasksResponses.reduce(function(acc, current){
+                    return acc.concat(current.data.tasks);
+                }, []);
+                console.log("\Found", tasksArray.length, "tasks");
+                // Wait for the responses from 100 describeTaskDefinition calls before invoking another 100 calls
+                // Without batchPromises, we will fire all ecs.describeTaskDefinition calls one after the other and could run into API rate limit issues
+                return batchPromises(100, tasksArray, task => new Promise((resolve, reject) => {
+                    //console.log("Calling describeTaskDefinition for", task.taskDefinitionArn);
+                    resolve(ecs.describeTaskDefinition({taskDefinition: task.taskDefinitionArn}).promise()
+                        .then(function (taskDefinition) {
+                          //console.log("  Got taskDefinition for", task.taskDefinitionArn);
+                          return taskDefinition;
+                        })
+                        .catch(function (err) {
+                          //console.log("  FAILED ecs.describeTaskDefinition() for", task.taskDefinitionArn, ":", err);
+                          return Promise.reject(err);
+                    }));
+                  }));
         })
         .then(function (taskDefs) {
+            console.log("\nFound", taskDefs.length, "task definitions");
             // Fill in task details in tasksArray with taskDefinition details (e.g. memory, cpu)
-            taskDefs.forEach(function (taskDef) {
+            taskDefs.forEach(function(taskDef) {
             tasksArray
                 .filter(function (t) {
-                return t["taskDefinitionArn"] == taskDef.data.taskDefinition.taskDefinitionArn;
+                   return t["taskDefinitionArn"] == taskDef.data.taskDefinition.taskDefinitionArn;
                 })
                 .forEach(function (t) {
-                t["taskDefinition"] = taskDef.data.taskDefinition;
+                    t["taskDefinition"] = taskDef.data.taskDefinition;
                 });
             });
             resolve(tasksArray);
         })
         .catch(function (err) {
+            console.error("\nCaught error in getTasksWithTaskDefinitions():", err);
             reject(err);
         });
     });

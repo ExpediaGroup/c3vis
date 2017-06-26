@@ -14,9 +14,9 @@
     "express": "4.12.4",
     "morgan": "1.5.3",
     "serve-favicon": "2.2.1",
-    "aws-sdk": "2.5.3",
-    "aws-sdk-promise": "0.0.2",
-    "sleep": "3.0.1"
+    "aws-sdk": "2.77.0",
+    "sleep": "3.0.1",
+    "batch-promises": "0.0.3"
   },
   "dev-dependencies": {
     "nodemon": "1.3.7"
