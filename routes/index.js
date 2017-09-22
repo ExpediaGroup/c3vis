@@ -51,26 +51,39 @@ router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
             return listAllContainerInstances(cluster);
         })
         .then(function (listAllContainerInstanceArns) {
+            debugLog(`\tFound ${listAllContainerInstanceArns.length} ContainerInstanceARNs...`);
           if (listAllContainerInstanceArns.length == 0) {
             return new Promise(function (resolve, reject) {
               resolve(null);
             });
           } else {
-            return ecs.describeContainerInstances({
-                cluster: cluster,
-                containerInstances: listAllContainerInstanceArns
-            }).promise();
+              let containerInstanceBatches = listAllContainerInstanceArns.map(function (instances, index) {
+                  return index % maxSize === 0 ? listAllContainerInstanceArns.slice(index, index + maxSize) : null;
+              }).filter(function (instances) {
+                  return instances;
+              });
+              return batchPromises(1, containerInstanceBatches, containerInstanceBatch => new Promise((resolve, reject) => {
+                  // The containerInstanceBatch iteratee will fire after each batch
+                  debugLog(`\tCalling ecs.describeContainerInstances for Container Instance batch: ${containerInstanceBatch}`);
+                  resolve(ecs.describeContainerInstances({
+                      cluster: cluster,
+                      containerInstances: containerInstanceBatch
+                  }).promise());
+              }));
           }
         })
-        .then(function (describeContainerInstancesResponse) {
-          if (!describeContainerInstancesResponse) {
+        .then(function (describeContainerInstancesResponses) {
+          if (!describeContainerInstancesResponses || describeContainerInstancesResponses.length == 0) {
             return new Promise(function (resolve, reject) {
+              console.warn("No Container Instances found");
               res.json([]);
             });
           } else {
-            containerInstances = describeContainerInstancesResponse.data.containerInstances;
-            var ec2instanceIds = containerInstances.map(function (i) { return i.ec2InstanceId; });
-            console.log(`Found the following ${ec2instanceIds.length} ec2InstanceIds: ${ec2instanceIds}`);
+            let containerInstances = describeContainerInstancesResponses.reduce(function(acc, current){
+              return acc.concat(current.data.containerInstances);
+            }, []);
+            let ec2instanceIds = containerInstances.map(function (i) { return i.ec2InstanceId; });
+            console.log(`Found ${ec2instanceIds.length} ec2InstanceIds: ${ec2instanceIds}`);
             return ec2.describeInstances({
               InstanceIds: ec2instanceIds
             }).promise()
@@ -170,10 +183,10 @@ function listTasksWithToken(cluster, token, tasks) {
     if (token) {
         params['nextToken'] = token;
     }
-    debugLog(`\tCalling ecs.listTasks with token ${token}`);
+    debugLog(`\tIn listTasksWithToken(), calling ecs.listTasks with token ${token}`);
     return ecs.listTasks(params).promise()
             .then(function(tasksResponse) {
-                debugLog(`\tReceived tasksResponse ${tasksResponse}`);
+                debugLog(`\t\tReceived tasksResponse with ${tasksResponse.data.taskArns.length} Task ARNs`);
                 let taskArns = tasks.concat(tasksResponse.data.taskArns);
                 let nextToken = tasksResponse.data.nextToken;
                 if (taskArns.length == 0) {
@@ -181,7 +194,7 @@ function listTasksWithToken(cluster, token, tasks) {
                 } else if (nextToken) {
                     return listTasksWithToken(cluster, nextToken, taskArns);
                 } else {
-                    debugLog(`\tReturning ${taskArns.length} taskArns from listTasksWithToken: ${taskArns}`);
+                    debugLog(`\t\tReturning ${taskArns.length} taskArns from listTasksWithToken: ${taskArns}`);
                     return taskArns;
                 }
             });
@@ -223,6 +236,7 @@ function getTasksWithTaskDefinitions(cluster) {
                 // Without batchPromises, we will fire all ecs.describeTaskDefinition calls one after the other and could run into API rate limit issues
                 return batchPromises(20, tasksArray, task => new Promise((resolve, reject) => {
                     debugLog(`\tCalling describeTaskDefinition for Task Definition ARN: ${task.taskDefinitionArn}`);
+                    // TODO: Don't ask for same task definition more than once
                     resolve(ecs.describeTaskDefinition({taskDefinition: task.taskDefinitionArn}).promise()
                         .then(function (taskDefinition) {
                           debugLog(`\t\tReceived taskDefinition for ${task.taskDefinitionArn}`);
