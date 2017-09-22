@@ -68,6 +68,7 @@ router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
             containerInstances = describeContainerInstancesResponse.data.containerInstances;
             var ec2instanceIds = containerInstances.map(function (i) { return i.ec2InstanceId; });
             console.log("\nFound the following", ec2instanceIds.length, "ec2InstanceIds in cluster '", cluster, "':", ec2instanceIds);
+            // FIXME: Call this in batches of 100 instanceIds to resolve "[ 'InvalidParameterException: instanceIds can have at most 100 items.',"
             return ec2.describeInstances({
               InstanceIds: ec2instanceIds
             }).promise()
@@ -167,10 +168,10 @@ function listTasksWithToken(cluster, token, tasks) {
     if (token) {
         params['nextToken'] = token;
     }
-    //console.log("\nCalling ecs.listTasks with token", token);
+    console.log("\nCalling ecs.listTasks with token", token);
     return ecs.listTasks(params).promise()
             .then(function(tasksResponse) {
-                //console.log("\nReceived tasksResponse", tasksResponse);
+                console.log("\nReceived tasksResponse", tasksResponse);
                 var taskArns = tasks.concat(tasksResponse.data.taskArns);
                 var nextToken = tasksResponse.data.nextToken;
                 if (taskArns.length == 0) {
@@ -178,23 +179,10 @@ function listTasksWithToken(cluster, token, tasks) {
                 } else if (nextToken) {
                     return listTasksWithToken(cluster, nextToken, taskArns);
                 } else {
-                    //console.log("\nReturning taskArns from listTasksWithToken", taskArns);
+                    console.log("\nReturning taskArns from listTasksWithToken", taskArns);
                     return taskArns;
                 }
             });
-}
-
-function findTaskDefinition(task, attempt) {
-    return ecs.describeTaskDefinition({taskDefinition: task.taskDefinitionArn}).promise().catch(function (err) {
-        sleep.sleep(attempt);
-        if (attempt <= 5) {
-            //console.log("\n  Reattempting findTaskDefinition for", task.taskDefinitionArn);
-            return findTaskDefinition(task, ++attempt);
-        } else {
-            //console.log("\n  REJECTing findTaskDefinition for", task.taskDefinitionArn, "after", attempt, "attempts");
-            return Promise.reject(err);
-        }
-    });
 }
 
 function getTasksWithTaskDefinitions(cluster) {
@@ -207,21 +195,23 @@ function getTasksWithTaskDefinitions(cluster) {
                   console.log("\nNo Task ARNs found");
                   resolve([]);
               } else {
-                  var taskBatches = allTaskArns.map(function (tasks, index) {
-                      return index % maxSize===0 ? allTaskArns.slice(index, index + maxSize) : null;
+                  return allTaskArns.map(function (tasks, index) {
+                      return index % maxSize === 0 ? allTaskArns.slice(index, index + maxSize) : null;
                   }).filter(function(tasks) {
+                      // Filter out null tasks
                       return tasks;
                   });
-                  return taskBatches;
               }
           })
           .then(function (taskBatches) {
-              // Batch the batches :) - describe up to 2 batches of batches of maxSize ARNs at a time
+              // Batch the batches :) - describe up to 1 batches of batches of maxSize ARNs at a time
               // Without batchPromises, we will fire all ecs.describeTasks calls one after the other and could run into API rate limit issues
-              return batchPromises(2, taskBatches, taskBatch => new Promise((resolve, reject) => {
+              return batchPromises(1, taskBatches, taskBatch => new Promise((resolve, reject) => {
                 // The iteratee will fire after each batch
-                //console.log("\nCalling ecs.describeTasks for", taskBatch);
-                resolve(ecs.describeTasks({cluster: cluster, tasks: taskBatch}).promise());
+                console.log("\nCalling ecs.describeTasks for", taskBatch);
+                var resolveTasksResponse = ecs.describeTasks({cluster: cluster, tasks: taskBatch});
+                console.log("\n  Got response from ecs.describeTasks()");
+                resolve(resolveTasksResponse.promise());
               }));
           })
           .then(function (describeTasksResponses) {
@@ -229,17 +219,19 @@ function getTasksWithTaskDefinitions(cluster) {
                     return acc.concat(current.data.tasks);
                 }, []);
                 console.log("\Found", tasksArray.length, "tasks");
-                // Wait for the responses from 20 describeTaskDefinition calls before invoking another 20 calls
+                // Wait for the responses from 1 asynchronous describeTaskDefinition calls before invoking another 1 asynchronous calls
                 // Without batchPromises, we will fire all ecs.describeTaskDefinition calls one after the other and could run into API rate limit issues
-                return batchPromises(20, tasksArray, task => new Promise((resolve, reject) => {
-                    //console.log("Calling describeTaskDefinition for", task.taskDefinitionArn);
+                taskDefinitionArns = tasksArray.map(task => {return task.taskDefinitionArn});
+                uniqueTaskDefinition = taskDefinitionArns.uniq();/**/
+                return batchPromises(1, tasksArray, task => new Promise((resolve, reject) => {
+                    console.log("Calling describeTaskDefinition for", task.taskDefinitionArn);
                     resolve(ecs.describeTaskDefinition({taskDefinition: task.taskDefinitionArn}).promise()
                         .then(function (taskDefinition) {
-                          //console.log("  Got taskDefinition for", task.taskDefinitionArn);
+                          console.log("  Got taskDefinition for", task.taskDefinitionArn);
                           return taskDefinition;
                         })
                         .catch(function (err) {
-                          //console.log("  FAILED ecs.describeTaskDefinition() for", task.taskDefinitionArn, ":", err);
+                          console.log("  FAILED ecs.describeTaskDefinition() for", task.taskDefinitionArn, ":", err);
                           return Promise.reject(err);
                     }));
                   }));
