@@ -276,7 +276,7 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
       // Draw legend
 
       var taskData = uniqueTaskDefs.sort();
-      var longestLength = taskData.reduce(function (a, b) { return a.length > b.length ? a : b; }).length;
+      var longestLength = taskData.reduce(function (a, b) { return a.length > b.length ? a : b; }, []).length;
 
       // TODO: Add hover highlight of related blocks
       d3.select('#' + legendDivId).select("svg").remove();
@@ -355,9 +355,9 @@ function populateGraph(useStaticData, chartDivId, legendDivId, cluster, resource
       window.apiResponseData = apiResponseData;
       console.log("For debugging: window.apiResponseData, window.apiResponseError");
 
-      renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onError);
+      renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError);
     });
   } catch (e) {
-    handleError("ERROR. Uncaught Exception: " + e, graph, onCompletion, onError);
+    handleError("ERROR. Uncaught Exception: " + e, graph, onError);
   }
 }
