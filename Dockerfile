@@ -1,6 +1,6 @@
 # https://hub.docker.com/r/library/node/
 
-FROM node:4.1
+FROM node:8.2-alpine
 
 # Bundle app source
 COPY . /
