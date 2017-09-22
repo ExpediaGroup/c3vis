@@ -1,6 +1,6 @@
 # https://hub.docker.com/r/library/node/
 
-FROM node:8.5-slim
+FROM node:8.5
 
 # Bundle app source
 COPY . /
