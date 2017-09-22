@@ -112,6 +112,12 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
 
     // Main graph area
     d3.select('#' + chartDivId).select("svg").remove();
+   } catch (e) {
+      console.error(e.stack ? e.stack : e || "Error");
+      onError(e.stack ? e.stack : e);
+      return;
+  }
+  try {
     var graph = d3.select('#' + chartDivId)
         .append("svg")
         .attr("class", "cluster-graph")
