@@ -1,5 +1,5 @@
 // TODO: Convert DEBUG_LOGGING to configuration
-var DEBUG_LOGGING = true;
+var DEBUG_LOGGING = false;
 
 var express = require('express');
 var router = express.Router();
