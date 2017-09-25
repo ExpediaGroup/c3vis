@@ -40,13 +40,37 @@ Otherwise, the credentials will be loaded from the Shared Credentials File or En
 
 When using an IAM role, ensure the role has the following access:
 
-* ecs.listContainerInstances
-* ecs.describeContainerInstances
-* ecs.listTasks
-* ecs.describeTasks
-* ecs.describeTaskDefinition
-* ecs.listClusters
-* ec2.describeInstances
+* ecs:listContainerInstances
+* ecs:describeContainerInstances
+* ecs:listTasks
+* ecs:describeTasks
+* ecs:describeTaskDefinition
+* ecs:listClusters
+* ec2:describeInstance
+
+Sample IAM Inline Policy:
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecs:listContainerInstances",
+                "ecs:describeContainerInstances",
+                "ecs:listTasks",
+                "ecs:describeTasks",
+                "ecs:describeTaskDefinition",
+                "ecs:listClusters",
+                "ec2:describeInstances"
+            ],
+            "Resource": [
+                "*"
+            ]
+        }
+    ]
+}
+```
 
 **WARNING:** c3vis makes ECS data from the above API calls (including environment variables in task definitions) available to clients/browsers.
 Ensure the c3vis server is available only to users that should have access to this information.
@@ -114,7 +138,7 @@ docker build -t c3vis .
 Run the container: (can remove ```AWS_ACCESS_KEY_ID``` and ```AWS_SECRET_ACCESS_KEY``` if deployed somewhere with appropriate IAM access)
 
 ```
-docker run -e "AWS_REGION=<region> AWS_ACCESS_KEY_ID=<accesskey>" -e "AWS_SECRET_ACCESS_KEY=<secretkey>" -p 3000:3000 c3vis
+docker run -e "AWS_REGION=<region>" -e "AWS_ACCESS_KEY_ID=<accesskey>" -e "AWS_SECRET_ACCESS_KEY=<secretkey>" -p 3000:3000 c3vis
 ```
 
 
