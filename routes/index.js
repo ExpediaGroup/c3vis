@@ -68,7 +68,7 @@ router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
                   resolve(ecs.describeContainerInstances({
                       cluster: cluster,
                       containerInstances: containerInstanceBatch
-                  }).promise());
+                  }).promise().then(delayPromise(1000)));
               }));
           }
         })
@@ -153,6 +153,7 @@ function listContainerInstanceWithToken(cluster, token, instanceArns) {
     if (token) {
         params['nextToken'] = token;
     }
+    debugLog("Calling ecs.listContainerInstances...");
     return ecs.listContainerInstances(params).promise()
             .then(function(listContainerInstanceResponse) {
                 var containerInstanceArns = instanceArns.concat(listContainerInstanceResponse.data.containerInstanceArns);
@@ -183,21 +184,22 @@ function listTasksWithToken(cluster, token, tasks) {
     if (token) {
         params['nextToken'] = token;
     }
-    debugLog(`\tIn listTasksWithToken(), calling ecs.listTasks with token ${token}`);
+    debugLog(`\tCalling ecs.listTasks with token: ${token} ...`);
     return ecs.listTasks(params).promise()
-            .then(function(tasksResponse) {
-                debugLog(`\t\tReceived tasksResponse with ${tasksResponse.data.taskArns.length} Task ARNs`);
-                let taskArns = tasks.concat(tasksResponse.data.taskArns);
-                let nextToken = tasksResponse.data.nextToken;
-                if (taskArns.length == 0) {
-                    return [];
-                } else if (nextToken) {
-                    return listTasksWithToken(cluster, nextToken, taskArns);
-                } else {
-                    debugLog(`\t\tReturning ${taskArns.length} taskArns from listTasksWithToken: ${taskArns}`);
-                    return taskArns;
-                }
-            });
+        .then(delayPromise(1000))
+        .then(function (tasksResponse) {
+            debugLog(`\t\tReceived tasksResponse with ${tasksResponse.data.taskArns.length} Task ARNs`);
+            let taskArns = tasks.concat(tasksResponse.data.taskArns);
+            let nextToken = tasksResponse.data.nextToken;
+            if (taskArns.length == 0) {
+                return [];
+            } else if (nextToken) {
+                return listTasksWithToken(cluster, nextToken, taskArns);
+            } else {
+                debugLog(`\t\tReturning ${taskArns.length} taskArns from listTasksWithToken: ${taskArns}`);
+                return taskArns;
+            }
+        });
 }
 
 function getTasksWithTaskDefinitions(cluster) {
@@ -224,7 +226,8 @@ function getTasksWithTaskDefinitions(cluster) {
               return batchPromises(2, taskBatches, taskBatch => new Promise((resolve, reject) => {
                   // The iteratee will fire after each batch
                   debugLog(`\tCalling ecs.describeTasks for Task batch: ${taskBatch}`);
-                  resolve(ecs.describeTasks({cluster: cluster, tasks: taskBatch}).promise());
+                  resolve(ecs.describeTasks({cluster: cluster, tasks: taskBatch}).promise()
+                      .then(delayPromise(1000)));
               }));
           })
           .then(function (describeTasksResponses) {
@@ -235,15 +238,16 @@ function getTasksWithTaskDefinitions(cluster) {
                 // Wait for the responses from 20 describeTaskDefinition calls before invoking another 20 calls
                 // Without batchPromises, we will fire all ecs.describeTaskDefinition calls one after the other and could run into API rate limit issues
                 return batchPromises(20, tasksArray, task => new Promise((resolve, reject) => {
-                    debugLog(`\tCalling describeTaskDefinition for Task Definition ARN: ${task.taskDefinitionArn}`);
+                    debugLog(`\tCalling ecs.describeTaskDefinition for Task Definition ARN: ${task.taskDefinitionArn}`);
                     // TODO: Don't ask for same task definition more than once
                     resolve(ecs.describeTaskDefinition({taskDefinition: task.taskDefinitionArn}).promise()
+                        .then(delayPromise(1000))
                         .then(function (taskDefinition) {
                           debugLog(`\t\tReceived taskDefinition for ${task.taskDefinitionArn}`);
                           return taskDefinition;
                         })
                         .catch(function (err) {
-                          debugLog(`\t\tFAILED ecs.describeTaskDefinition() for '${task.taskDefinitionArn}': ${err}`);
+                          debugLog(`\t\tFAILED ecs.describeTaskDefinition call for '${task.taskDefinitionArn}': ${err}`);
                           return Promise.reject(err);
                     }));
                   }));
@@ -284,6 +288,22 @@ function debugLog(msg) {
     if (DEBUG_LOGGING) {
         console.info(msg);
     }
+}
+
+// From: https://blog.raananweber.com/2015/12/01/writing-a-promise-delayer/
+// NOTE: https://www.npmjs.com/package/promise-pause does not work as the aws-sdk-promise library does not return a Promise but a thenable object
+function delayPromise(delay) {
+  //return a function that accepts a single variable
+  return function(data) {
+    //this function returns a promise.
+    return new Promise(function(resolve, reject) {
+      debugLog(`Pausing for ${delay}ms...`);
+      setTimeout(function() {
+        //a promise that is resolved after "delay" milliseconds with the data provided
+        resolve(data);
+      }, delay);
+    });
+  }
 }
 
 module.exports = router;
