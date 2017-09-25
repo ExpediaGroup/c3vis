@@ -92,27 +92,9 @@ function remainingResource(d, resourceType) {
   }
 }
 
-function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError) {
-  var showTaskBreakdown = true;  // TODO: Parameterise
-  try {
-    var resourceType = parseResourceType(resourceTypeText, ResourceEnum.MEMORY);
-    var topMargin = 20;
-    var bottomMargin = 100;
-    var rightMargin = 50;
-    var leftMargin = 50;
-    var graphWidth = (window.apiResponseData.length > 50 ? 1300 : 1000) - leftMargin - rightMargin; //establishes width based on data set size
-    var graphHeight = 520 - topMargin - bottomMargin;
-    var totalHeight = 400;
-
-    var colorRange = d3.scale.ordinal().range(colorbrewer.Pastel1[9].concat(colorbrewer.Pastel2[8]).concat(colorbrewer.Set1[9]).concat(colorbrewer.Set2[8]).concat(colorbrewer.Set3[12]));
-    var xRange = d3.scale.ordinal().rangeRoundBands([10, graphWidth], .1);
-    var yRange = d3.scale.linear().rangeRound([graphHeight, 0]);
-    var xAxis = d3.svg.axis().scale(xRange).orient("bottom");
-    var yAxis = d3.svg.axis().scale(yRange).orient("left").tickFormat(d3.format(".2s"));
-
-    // Main graph area
+function recreateMainGraphElement(chartDivId, graphWidth, leftMargin, rightMargin, totalHeight, topMargin, bottomMargin) {
     d3.select('#' + chartDivId).select("svg").remove();
-    var graph = d3.select('#' + chartDivId)
+    let graph = d3.select('#' + chartDivId)
         .append("svg")
         .attr("class", "cluster-graph")
         .attr("id", "cluster-graph")
@@ -120,12 +102,39 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
         .attr("height", totalHeight + topMargin + bottomMargin)
         .attr("float", "left")
         .append("g").attr("transform", "translate(" + leftMargin + "," + topMargin + ")");
+    return graph;
+}
 
-    if (window.apiResponseError) {
-      var errorMsg = "Server Error: " + (window.apiResponseError instanceof XMLHttpRequest ? window.apiResponseError.responseText : JSON.stringify(window.apiResponseError));
-      handleError(errorMsg, graph, onError);
-      return graph;
-    }
+const GRAPH_TOP_MARGIN = 20;
+const GRAPH_BOTTOM_MARGIN = 100;
+const RIGHT_MARGIN = 50;
+const LEFT_MARGIN = 50;
+const GRAPH_HEIGHT = 520 - GRAPH_TOP_MARGIN - GRAPH_BOTTOM_MARGIN;
+const TOTAL_HEIGHT = 400;
+const DEFAULT_GRAPH_WIDTH = 1000;
+const EXPANDED_GRAPH_WIDTH = 1300;
+
+function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError) {
+  if (window.apiResponseError) {
+    let errorMsg = "Server Error: " + (window.apiResponseError instanceof XMLHttpRequest ? window.apiResponseError.responseText : JSON.stringify(window.apiResponseError));
+    let graph = recreateMainGraphElement(chartDivId, DEFAULT_GRAPH_WIDTH, LEFT_MARGIN, RIGHT_MARGIN, TOTAL_HEIGHT, GRAPH_TOP_MARGIN, GRAPH_BOTTOM_MARGIN);
+    handleError(errorMsg, graph, onError);
+    return graph;
+  }
+
+  let showTaskBreakdown = true;  // TODO: Parameterise
+
+  try {
+    let resourceType = parseResourceType(resourceTypeText, ResourceEnum.MEMORY);
+    let graphWidth = window.apiResponseError ? DEFAULT_GRAPH_WIDTH : (window.apiResponseData.length > 50 ? EXPANDED_GRAPH_WIDTH : DEFAULT_GRAPH_WIDTH) - LEFT_MARGIN - RIGHT_MARGIN; //establishes width based on data set size
+    let colorRange = d3.scale.ordinal().range(colorbrewer.Pastel1[9].concat(colorbrewer.Pastel2[8]).concat(colorbrewer.Set1[9]).concat(colorbrewer.Set2[8]).concat(colorbrewer.Set3[12]));
+    let xRange = d3.scale.ordinal().rangeRoundBands([10, graphWidth], .1);
+    let yRange = d3.scale.linear().rangeRound([GRAPH_HEIGHT, 0]);
+    let xAxis = d3.svg.axis().scale(xRange).orient("bottom");
+    let yAxis = d3.svg.axis().scale(yRange).orient("left").tickFormat(d3.format(".2s"));
+
+    // Main graph area
+    let graph = recreateMainGraphElement(chartDivId, graphWidth, LEFT_MARGIN, RIGHT_MARGIN, TOTAL_HEIGHT, GRAPH_TOP_MARGIN, GRAPH_BOTTOM_MARGIN);
 
     if (window.apiResponseData.length == 0) {
       showInfo(graph, "No instances are registered for the '" + cluster + "' cluster.");
@@ -133,7 +142,7 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
       return graph;
     }
 
-    var uniqueTaskDefs = window.apiResponseData.reduce(function (acc, current) {
+    let uniqueTaskDefs = window.apiResponseData.reduce(function (acc, current) {
       return acc.concat(current.tasks.map(function (t) {
         return taskFamilyAndRevision(t);
       }))
@@ -168,7 +177,7 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
     // Draw X axis
     var xAxisLabels = graph.append("g")
         .attr("class", "graph-axis")
-        .attr("transform", "translate(0," + graphHeight + ")")
+        .attr("transform", "translate(0," + GRAPH_HEIGHT + ")")
         .call(xAxis);
 
     var menu = [
@@ -276,7 +285,7 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
       // Draw legend
 
       var taskData = uniqueTaskDefs.sort();
-      var longestLength = taskData.reduce(function (a, b) { return a.length > b.length ? a : b; }).length;
+      var longestLength = taskData.reduce(function (a, b) { return a.length > b.length ? a : b; }, []).length;
 
       // TODO: Add hover highlight of related blocks
       d3.select('#' + legendDivId).select("svg").remove();
@@ -295,7 +304,7 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
           .enter()
           .append("rect")
           .attr("x", 1)
-          .attr("y", function(d, i) { return ((i *  20) + topMargin); })
+          .attr("y", function(d, i) { return ((i *  20) + GRAPH_TOP_MARGIN); })
           .attr("width", 18)
           .attr("height", 18)
           .style("fill", function (d) { return colorRange(d); })
@@ -309,7 +318,7 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
           .attr("x", 25)
           .attr("width", 5)
           .attr("height", 5)
-          .attr("y", function(d, i) { return ((i *  20) + topMargin + 12); })
+          .attr("y", function(d, i) { return ((i *  20) + GRAPH_TOP_MARGIN + 12); })
           .text(function(d) { return d; });
 
     } else {
@@ -355,9 +364,9 @@ function populateGraph(useStaticData, chartDivId, legendDivId, cluster, resource
       window.apiResponseData = apiResponseData;
       console.log("For debugging: window.apiResponseData, window.apiResponseError");
 
-      renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onError);
+      renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError);
     });
   } catch (e) {
-    handleError("ERROR. Uncaught Exception: " + e, graph, onCompletion, onError);
+    handleError("ERROR. Uncaught Exception: " + e, graph, onError);
   }
 }
