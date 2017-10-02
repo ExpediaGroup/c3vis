@@ -113,6 +113,20 @@ From the browser, use a ```"?static=true"``` query parameter to have the server 
 
 Browse to `http://localhost:3000/?static=true`.
 
+### Debug Logging
+
+To see all debug log entries:
+
+```
+DEBUG=* npm start
+```
+
+To see just API debug log entries:
+
+```
+DEBUG=api npm start
+```
+
 ### Debugging
 
 Add the following line to server-side Javascript code to add a breakpoint:
