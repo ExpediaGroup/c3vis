@@ -19,7 +19,9 @@ function showError(graph, message) {
 }
 
 function showMessage(graph, message, color) {
-  graph.append("text").attr("x", 0).attr("y", 20).attr("fill", color).text(message || "Error");
+  if (graph !== null) {
+    graph.append("text").attr("x", 0).attr("y", 20).attr("fill", color).text(message || "Error");
+  }
 }
 
 function handleError(errorMsg, graph, onError) {
@@ -28,22 +30,28 @@ function handleError(errorMsg, graph, onError) {
 }
 
 function ecsInstanceConsoleUrl(data, ec2IpAddress) {
-  instance = data.find(function (element, index, array) { return element.ec2IpAddress == ec2IpAddress; });
+  const instance = data.find(function (element, index, array) {
+    return element.ec2IpAddress == ec2IpAddress;
+  });
   return instance != null ? instance.ecsInstanceConsoleUrl : null;
 }
 
 function ec2InstanceConsoleUrl(data, ec2IpAddress) {
-  instance = data.find(function (element, index, array) { return element.ec2IpAddress == ec2IpAddress; });
+  const instance = data.find(function (element, index, array) {
+    return element.ec2IpAddress == ec2IpAddress;
+  });
   return instance != null ? instance.ec2InstanceConsoleUrl : null;
 }
 
 function ec2InstanceId(data, ec2IpAddress) {
-  instance = data.find(function (element, index, array) { return element.ec2IpAddress == ec2IpAddress; });
+  const instance = data.find(function (element, index, array) {
+    return element.ec2IpAddress == ec2IpAddress;
+  });
   return instance != null ? instance.ec2InstanceId : null;
 }
 
 function copyToClipboard(text) {
-  var copyElement = document.createElement('input');
+  let copyElement = document.createElement('input');
   copyElement.setAttribute('type', 'text');
   copyElement.setAttribute('value', text);
   copyElement = document.body.appendChild(copyElement);
@@ -61,8 +69,10 @@ function copyToClipboard(text) {
 }
 
 function addD3DataToTask(task, resourceType, y0) {
-  var resourceAllocation = task.taskDefinition.containerDefinitions.reduce(function (sum, b) { return sum + (resourceType == ResourceEnum.MEMORY ? b.memory : b.cpu); }, 0);
-  var y1 = y0 + resourceAllocation;
+  const resourceAllocation = task.taskDefinition.containerDefinitions.reduce(function (sum, b) {
+    return sum + (resourceType == ResourceEnum.MEMORY ? b.memory : b.cpu);
+  }, 0);
+  const y1 = y0 + resourceAllocation;
   task.d3Data = {
     name: taskFamilyAndRevision(task),
     resourceAllocation: resourceAllocation, // sum of all containers' resource (memory/cpu) allocation
@@ -93,16 +103,15 @@ function remainingResource(d, resourceType) {
 }
 
 function recreateMainGraphElement(chartDivId, graphWidth, leftMargin, rightMargin, totalHeight, topMargin, bottomMargin) {
-    d3.select('#' + chartDivId).select("svg").remove();
-    let graph = d3.select('#' + chartDivId)
-        .append("svg")
-        .attr("class", "cluster-graph")
-        .attr("id", "cluster-graph")
-        .attr("width", graphWidth + leftMargin + rightMargin)
-        .attr("height", totalHeight + topMargin + bottomMargin)
-        .attr("float", "left")
-        .append("g").attr("transform", "translate(" + leftMargin + "," + topMargin + ")");
-    return graph;
+  d3.select('#' + chartDivId).select("svg").remove();
+  return d3.select('#' + chartDivId)
+    .append("svg")
+    .attr("class", "cluster-graph")
+    .attr("id", "cluster-graph")
+    .attr("width", graphWidth + leftMargin + rightMargin)
+    .attr("height", totalHeight + topMargin + bottomMargin)
+    .attr("float", "left")
+    .append("g").attr("transform", "translate(" + leftMargin + "," + topMargin + ")");
 }
 
 const GRAPH_TOP_MARGIN = 20;
@@ -116,25 +125,25 @@ const EXPANDED_GRAPH_WIDTH = 1300;
 
 function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError) {
   if (window.apiResponseError) {
-    let errorMsg = "Server Error: " + (window.apiResponseError instanceof XMLHttpRequest ? window.apiResponseError.responseText : JSON.stringify(window.apiResponseError));
-    let graph = recreateMainGraphElement(chartDivId, DEFAULT_GRAPH_WIDTH, LEFT_MARGIN, RIGHT_MARGIN, TOTAL_HEIGHT, GRAPH_TOP_MARGIN, GRAPH_BOTTOM_MARGIN);
+    const errorMsg = "Server Error: " + (window.apiResponseError instanceof XMLHttpRequest ? window.apiResponseError.responseText : JSON.stringify(window.apiResponseError));
+    const graph = recreateMainGraphElement(chartDivId, DEFAULT_GRAPH_WIDTH, LEFT_MARGIN, RIGHT_MARGIN, TOTAL_HEIGHT, GRAPH_TOP_MARGIN, GRAPH_BOTTOM_MARGIN);
     handleError(errorMsg, graph, onError);
     return graph;
   }
 
-  let showTaskBreakdown = true;  // TODO: Parameterise
+  const showTaskBreakdown = true;  // TODO: Parameterise
 
   try {
-    let resourceType = parseResourceType(resourceTypeText, ResourceEnum.MEMORY);
-    let graphWidth = window.apiResponseError ? DEFAULT_GRAPH_WIDTH : (window.apiResponseData.length > 50 ? EXPANDED_GRAPH_WIDTH : DEFAULT_GRAPH_WIDTH) - LEFT_MARGIN - RIGHT_MARGIN; //establishes width based on data set size
-    let colorRange = d3.scale.ordinal().range(colorbrewer.Pastel1[9].concat(colorbrewer.Pastel2[8]).concat(colorbrewer.Set1[9]).concat(colorbrewer.Set2[8]).concat(colorbrewer.Set3[12]));
-    let xRange = d3.scale.ordinal().rangeRoundBands([10, graphWidth], .1);
-    let yRange = d3.scale.linear().rangeRound([GRAPH_HEIGHT, 0]);
-    let xAxis = d3.svg.axis().scale(xRange).orient("bottom");
-    let yAxis = d3.svg.axis().scale(yRange).orient("left").tickFormat(d3.format(".2s"));
+    const resourceType = parseResourceType(resourceTypeText, ResourceEnum.MEMORY);
+    const graphWidth = window.apiResponseError ? DEFAULT_GRAPH_WIDTH : (window.apiResponseData.length > 50 ? EXPANDED_GRAPH_WIDTH : DEFAULT_GRAPH_WIDTH) - LEFT_MARGIN - RIGHT_MARGIN; //establishes width based on data set size
+    const colorRange = d3.scale.ordinal().range(colorbrewer.Pastel1[9].concat(colorbrewer.Pastel2[8]).concat(colorbrewer.Set1[9]).concat(colorbrewer.Set2[8]).concat(colorbrewer.Set3[12]));
+    const xRange = d3.scale.ordinal().rangeRoundBands([10, graphWidth], .1);
+    const yRange = d3.scale.linear().rangeRound([GRAPH_HEIGHT, 0]);
+    const xAxis = d3.svg.axis().scale(xRange).orient("bottom");
+    const yAxis = d3.svg.axis().scale(yRange).orient("left").tickFormat(d3.format(".2s"));
 
     // Main graph area
-    let graph = recreateMainGraphElement(chartDivId, graphWidth, LEFT_MARGIN, RIGHT_MARGIN, TOTAL_HEIGHT, GRAPH_TOP_MARGIN, GRAPH_BOTTOM_MARGIN);
+    const graph = recreateMainGraphElement(chartDivId, graphWidth, LEFT_MARGIN, RIGHT_MARGIN, TOTAL_HEIGHT, GRAPH_TOP_MARGIN, GRAPH_BOTTOM_MARGIN);
 
     if (window.apiResponseData.length == 0) {
       showInfo(graph, "No instances are registered for the '" + cluster + "' cluster.");
@@ -156,8 +165,8 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
 
     window.apiResponseData.forEach(function (instance) {
       // Add d3Data to each task for later display
-      var y0 = 0;
-      instance.tasks.forEach(function(task) {
+      let y0 = 0;
+      instance.tasks.forEach(function (task) {
         y0 = addD3DataToTask(task, resourceType, y0);
       });
     });
@@ -168,178 +177,188 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
     }));
 
     // Calculate maximum resource (memory/cpu) across all servers
-    var maxResource = d3.max(window.apiResponseData, function (d) {
+    const maxResource = d3.max(window.apiResponseData, function (d) {
       return registeredResource(d, resourceType);
     });
     // Set Y axis linear domain range from 0 to maximum memory/cpu in bytes
     yRange.domain([0, toBytes(maxResource)]);
 
     // Draw X axis
-    var xAxisLabels = graph.append("g")
-        .attr("class", "graph-axis")
-        .attr("transform", "translate(0," + GRAPH_HEIGHT + ")")
-        .call(xAxis);
+    const xAxisLabels = graph.append("g")
+      .attr("class", "graph-axis")
+      .attr("transform", "translate(0," + GRAPH_HEIGHT + ")")
+      .call(xAxis);
 
-    var menu = [
+    const menu = [
       {
         title: 'Copy IP Address',
-        action: function(elm, d, i) {
+        action: function (elm, d, i) {
           copyToClipboard(d);
         }
       },
       {
         title: 'Open ECS Container Instance Console',
-        action: function(elm, d, i) {
+        action: function (elm, d, i) {
           window.open(ecsInstanceConsoleUrl(window.apiResponseData, d), '_blank');
         }
       },
       {
         title: 'Open EC2 Instance Console',
-        action: function(elm, d, i) {
+        action: function (elm, d, i) {
           window.open(ec2InstanceConsoleUrl(window.apiResponseData, d), '_blank');
         }
       }
     ];
 
     xAxisLabels.selectAll("text")
-        .attr("cursor", "pointer")
-        .on('contextmenu', d3.contextMenu(menu))
-        // X axis tooltip
-        .append("svg:title")
-        .text(function (d) {
-          return "Right-click for options";
-        });
+      .attr("cursor", "pointer")
+      .on('contextmenu', d3.contextMenu(menu))
+      // X axis tooltip
+      .append("svg:title")
+      .text(function (d) {
+        return "Right-click for options";
+      });
 
     // Rotate X axis labels 90 degrees if bar is wide enough to cause overlapping
     if (xRange.rangeBand() < 80) {
       xAxisLabels.selectAll("text")
-          .attr("y", 0)
-          .attr("x", 9)
-          .attr("dy", ".35em")
-          .attr("transform", "rotate(90)")
-          .style("text-anchor", "start");
+        .attr("y", 0)
+        .attr("x", 9)
+        .attr("dy", ".35em")
+        .attr("transform", "rotate(90)")
+        .style("text-anchor", "start");
     }
 
     // Make the font smaller if bar is wide enough to cause overlapping
     if (xRange.rangeBand() < 14) {
       xAxisLabels.selectAll("text")
-          .attr("class", "graph-axis-small")
+        .attr("class", "graph-axis-small")
     }
 
     // Draw Y axis
     graph.append("g")
-        .attr("class", "graph-axis")
-        .call(yAxis)
-        .append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("y", 6)
-        .attr("dy", ".71em")
-        .style("text-anchor", "end")
-        .text(resourceLabel(resourceType));
+      .attr("class", "graph-axis")
+      .call(yAxis)
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text(resourceLabel(resourceType));
 
     // TODO: Request task data in parallel with instance data. Draw instance outline first then draw task boxes
     // Create svg elements for each server
-    var instance = graph.selectAll(".instance")
-        .data(window.apiResponseData)
-        .enter().append("g")
-        .attr("class", "g")
-        .attr("transform", function (d) {
-          return "translate(" + xRange(d.ec2IpAddress) + ",0)";
-        });
+    const instance = graph.selectAll(".instance")
+      .data(window.apiResponseData)
+      .enter().append("g")
+      .attr("class", "g")
+      .attr("transform", function (d) {
+        return "translate(" + xRange(d.ec2IpAddress) + ",0)";
+      });
 
     // For each server, draw entire resource (memory/cpu) available as grey rect
     instance.append("rect")
-        .attr("class", "instance-block")
-        .attr("width", xRange.rangeBand())
-        .attr("y", function (d) {
-          return yRange(toBytes(registeredResource(d, resourceType)))
-        })
-        .attr("height", function (d) {
-          return yRange(toBytes(maxResource - (registeredResource(d, resourceType))));
-        });
+      .attr("class", "instance-block")
+      .attr("width", xRange.rangeBand())
+      .attr("y", function (d) {
+        return yRange(toBytes(registeredResource(d, resourceType)))
+      })
+      .attr("height", function (d) {
+        return yRange(toBytes(maxResource - (registeredResource(d, resourceType))));
+      });
 
     if (showTaskBreakdown) {
       // For each task on each server, represent resource (memory/cpu) allocation as a rect
       instance.selectAll(".task")
-          .data(function (d) {
-            return d.tasks;
-          })
-          .enter().append("rect")
-          .attr("class", "task-block")
-          .attr("width", xRange.rangeBand())
-          .attr("y", function (d) {
-            return yRange(toBytes(d.d3Data.y1));
-          })
-          .attr("height", function (d) {
-            return yRange(toBytes(d.d3Data.y0)) - yRange(toBytes(d.d3Data.y1));
-          })
-          .style("fill", function (d) {
-            return colorRange(d.d3Data.name);
-          })
-          // Use name as hover tooltip
-          .append("svg:title")
-          .text(function (d) {
-            return d.d3Data.name + "  (" + resourceLabel(resourceType) + ": " + d.d3Data.resourceAllocation + ")";
-          });
+        .data(function (d) {
+          return d.tasks;
+        })
+        .enter().append("rect")
+        .attr("class", "task-block")
+        .attr("width", xRange.rangeBand())
+        .attr("y", function (d) {
+          return yRange(toBytes(d.d3Data.y1));
+        })
+        .attr("height", function (d) {
+          return yRange(toBytes(d.d3Data.y0)) - yRange(toBytes(d.d3Data.y1));
+        })
+        .style("fill", function (d) {
+          return colorRange(d.d3Data.name);
+        })
+        // Use name as hover tooltip
+        .append("svg:title")
+        .text(function (d) {
+          return d.d3Data.name + "  (" + resourceLabel(resourceType) + ": " + d.d3Data.resourceAllocation + ")";
+        });
 
       // Draw legend
 
-      var taskData = uniqueTaskDefs.sort();
-      var longestLength = taskData.reduce(function (a, b) { return a.length > b.length ? a : b; }, []).length;
+      const taskData = uniqueTaskDefs.sort();
+      const longestLength = taskData.reduce(function (a, b) {
+        return a.length > b.length ? a : b;
+      }, []).length;
 
       // TODO: Add hover highlight of related blocks
       d3.select('#' + legendDivId).select("svg").remove();
-      var svg2 = d3.select('#' + legendDivId)
-          .append("svg")
-          .attr("class", "cluster-legend")
-          .attr("id", "cluster-legend")
-          .attr("width", (longestLength * 10) + 20)
-          .attr("height", (20 * taskData.length) + 20);
+      const svg2 = d3.select('#' + legendDivId)
+        .append("svg")
+        .attr("class", "cluster-legend")
+        .attr("id", "cluster-legend")
+        .attr("width", (longestLength * 10) + 20)
+        .attr("height", (20 * taskData.length) + 20);
 
-      var legend = svg2.append("g")
-          .attr("class", "legend");
+      const legend = svg2.append("g")
+        .attr("class", "legend");
 
       legend.selectAll('rect')
-          .data(taskData)
-          .enter()
-          .append("rect")
-          .attr("x", 1)
-          .attr("y", function(d, i) { return ((i *  20) + GRAPH_TOP_MARGIN); })
-          .attr("width", 18)
-          .attr("height", 18)
-          .style("fill", function (d) { return colorRange(d); })
-          .style("stroke-width", 0.5)
-          .style("stroke", "rgb(51, 51, 51)");
+        .data(taskData)
+        .enter()
+        .append("rect")
+        .attr("x", 1)
+        .attr("y", function (d, i) {
+          return ((i * 20) + GRAPH_TOP_MARGIN);
+        })
+        .attr("width", 18)
+        .attr("height", 18)
+        .style("fill", function (d) {
+          return colorRange(d);
+        })
+        .style("stroke-width", 0.5)
+        .style("stroke", "rgb(51, 51, 51)");
 
       legend.selectAll('text')
-          .data(taskData)
-          .enter()
-          .append("text")
-          .attr("x", 25)
-          .attr("width", 5)
-          .attr("height", 5)
-          .attr("y", function(d, i) { return ((i *  20) + GRAPH_TOP_MARGIN + 12); })
-          .text(function(d) { return d; });
+        .data(taskData)
+        .enter()
+        .append("text")
+        .attr("x", 25)
+        .attr("width", 5)
+        .attr("height", 5)
+        .attr("y", function (d, i) {
+          return ((i * 20) + GRAPH_TOP_MARGIN + 12);
+        })
+        .text(function (d) {
+          return d;
+        });
 
     } else {
       // For each each server, represent total cpu allocation as a single orange rect
       instance.append("rect")
-          .attr("width", xRange.rangeBand())
-          .attr("y", function (d) {
-            var usedCpu = toBytes(registeredResource(d, resourceType)) - toBytes(remainingResource(d, resourceType));
-            return yRange(usedCpu)
-          })
-          .attr("height", function (d) {
-            return yRange(toBytes(remainingResource(d, resourceType))) - yRange(toBytes(registeredResource(d, resourceType)));
-          })
-          .style("fill", "orange")
-          .style("stroke", "grey");
+        .attr("width", xRange.rangeBand())
+        .attr("y", function (d) {
+          const usedCpu = toBytes(registeredResource(d, resourceType)) - toBytes(remainingResource(d, resourceType));
+          return yRange(usedCpu)
+        })
+        .attr("height", function (d) {
+          return yRange(toBytes(remainingResource(d, resourceType))) - yRange(toBytes(registeredResource(d, resourceType)));
+        })
+        .style("fill", "orange")
+        .style("stroke", "grey");
     }
 
     return graph;
 
   } catch (e) {
-    handleError(e.stack ? e.stack : e, graph, onError);
+    handleError(e.stack ? e.stack : e, null, onError);
   } finally {
     onCompletion();
   }
@@ -348,25 +367,25 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
 function populateGraph(useStaticData, chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError) {
   try {
     if (!cluster && !useStaticData) {
-      handleError("Please select a cluster.", graph, onError);
+      handleError("Please select a cluster.", null, onError);
       return;
     }
 
-    var clusterParam = "cluster=" + (cluster ? cluster : "default");
-    var optionalStaticParam = (useStaticData ? "&static=true" : "");
-    var c3visApiUrl = "/api/instance_summaries_with_tasks?" + clusterParam + optionalStaticParam;
+    const clusterParam = "cluster=" + (cluster ? cluster : "default");
+    const optionalStaticParam = (useStaticData ? "&static=true" : "");
+    const c3visApiUrl = "/api/instance_summaries_with_tasks?" + clusterParam + optionalStaticParam;
 
     // after a GET all data from API begin drawing graph
     d3.json(c3visApiUrl, function (apiResponseError, apiResponseData) {
       // TODO: Display multiple graphs if server returns > 100 instances
 
-      window.apiResponseError = apiResponseError;
-      window.apiResponseData = apiResponseData;
-      console.log("For debugging: window.apiResponseData, window.apiResponseError");
+              window.apiResponseError = apiResponseError;
+              window.apiResponseData = apiResponseData;
+              console.log("For debugging: window.apiResponseData, window.apiResponseError");
 
-      renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError);
-    });
+              renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError);
+            });
   } catch (e) {
-    handleError("ERROR. Uncaught Exception: " + e, graph, onError);
+    handleError("ERROR. Uncaught Exception: " + e, null, onError);
   }
 }
