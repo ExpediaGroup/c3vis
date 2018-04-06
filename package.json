@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "prestart": "npm install",
-    "start": "node --harmony ./bin/www  # --harmony required for extra ES6 functionality such as Array.find()"
+    "start": "node ./bin/www"
   },
   "dependencies": {
     "body-parser": "1.12.4",

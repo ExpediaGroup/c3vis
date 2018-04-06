@@ -19,6 +19,8 @@ const utils = require('./utils');
 
 const taskDefinitionCache = require('memory-cache');
 
+var clusterStore = {};
+
 const ecs = new AWS.ECS();
 const ec2 = new AWS.EC2();
 const maxSize = 100;
@@ -38,100 +40,146 @@ router.get('/', function (req, res, next) {
  * Endpoints take a "?static=true" query param to enable testing with static data when AWS credentials aren't available
  */
 
+const STATUS_INITIAL = "initial";
+const STATUS_FETCHING = "fetching";
+const STATUS_FETCHED = "fetched";
+
 router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
   console.log(`/api/instance_summaries_with_tasks: cluster='${req.query.cluster}', live=${!req.query.static})`);
   debugLog(`Headers: ${JSON.stringify(req.headers, null, 4)}`);
+
   if (!req.query.cluster) {
     send400Response("Please provide a 'cluster' parameter", res);
   } else {
-    const cluster = req.query.cluster;
+    const clusterName = req.query.cluster;
     const live = req.query.static !== 'true';
     if (live) {
-      let tasksArray = [];
-      getTasksWithTaskDefinitions(cluster)
-        .then(function (tasksResult) {
-          tasksArray = tasksResult;
-          return listAllContainerInstances(cluster);
+      if (!getClusterStore(clusterName)) {
+        new Promise(function (resolve) {
+          initialiseClusterStore(clusterName);
+          resolve();
         })
-        .then(function (listAllContainerInstanceArns) {
-          debugLog(`\tFound ${listAllContainerInstanceArns.length} ContainerInstanceARNs...`);
-          if (listAllContainerInstanceArns.length === 0) {
-            return new Promise(function (resolve, reject) {
-              resolve(null);
-            });
-          } else {
-            const containerInstanceBatches = listAllContainerInstanceArns.map(function (instances, index) {
-              return index % maxSize === 0 ? listAllContainerInstanceArns.slice(index, index + maxSize) : null;
-            }).filter(function (instances) {
-              return instances;
-            });
-            return batchPromises(1, containerInstanceBatches, containerInstanceBatch => new Promise((resolve, reject) => {
-              // The containerInstanceBatch iteratee will fire after each batch
-              debugLog(`\tCalling ecs.describeContainerInstances for Container Instance batch: ${containerInstanceBatch}`);
-              resolve(ecs.describeContainerInstances({
-                cluster: cluster,
-                containerInstances: containerInstanceBatch
-              }).promise().then(delayPromise(AWS_API_DELAY)));
-            }));
-          }
-        })
-        .then(function (describeContainerInstancesResponses) {
-          if (!describeContainerInstancesResponses || describeContainerInstancesResponses.length === 0) {
-            return new Promise(function (resolve, reject) {
-              console.warn("No Container Instances found");
-              res.json([]);
-            });
-          } else {
-            const containerInstances = describeContainerInstancesResponses.reduce(function (acc, current) {
-              return acc.concat(current.data.containerInstances);
-            }, []);
-            const ec2instanceIds = containerInstances.map(function (i) {
-              return i.ec2InstanceId;
-            });
-            console.log(`Found ${ec2instanceIds.length} ec2InstanceIds: ${ec2instanceIds}`);
-            return ec2.describeInstances({
-              InstanceIds: ec2instanceIds
-            }).promise()
-              .then(function (ec2Instances) {
-                const instances = [].concat.apply([], ec2Instances.data.Reservations.map(function (r) {
-                  return r.Instances
-                }));
-                const privateIpAddresses = instances.map(function (i) {
-                  return i.PrivateIpAddress
-                });
-                console.log(`\twith ${privateIpAddresses.length} matching Private IP addresses: ${privateIpAddresses}`);
-                const instanceSummaries = containerInstances.map(function (instance) {
-                  const ec2IpAddress = instances.find(function (i) {
-                    return i.InstanceId === instance.ec2InstanceId
-                  }).PrivateIpAddress;
-                  return {
-                    "ec2IpAddress": ec2IpAddress,
-                    "ec2InstanceId": instance.ec2InstanceId,
-                    "ec2InstanceConsoleUrl": "https://console.aws.amazon.com/ec2/v2/home?region=" + AWS.config.region + "#Instances:instanceId=" + instance.ec2InstanceId,
-                    "ecsInstanceConsoleUrl": "https://console.aws.amazon.com/ecs/home?region=" + AWS.config.region + "#/clusters/" + cluster + "/containerInstances/" + instance["containerInstanceArn"].substring(instance["containerInstanceArn"].lastIndexOf("/") + 1),
-                    "registeredCpu": utils.registeredCpu(instance),
-                    "registeredMemory": utils.registeredMemory(instance),
-                    "remainingCpu": utils.remainingCpu(instance),
-                    "remainingMemory": utils.remainingMemory(instance),
-                    "tasks": tasksArray.filter(function (t) {
-                      return t.containerInstanceArn === instance.containerInstanceArn;
-                    })
-                  }
-                });
-                res.json(instanceSummaries);
-              });
-          }
-        })
-        .catch(function (err) {
-          sendErrorResponse(err, res);
+        .then(function () {
+          // Return to client
+          res.json(getClusterStore(clusterName));
         });
+        // Continue populating cluster store while client polls asynchronously
+        populateClusterStore(clusterName)
+      } else {
+        console.log("After populateState... responding with ", getClusterStore(clusterName));
+        // Return currently fetched cluster store to client
+        res.json(getClusterStore(clusterName));
+      }
     } else {
       // Return some static instance details with task details
-      const instanceSummaries = JSON.parse(fs.readFileSync("public/test_data/ecs_instance_summaries_with_tasks-" + cluster + ".json", "utf8"));
+      const instanceSummaries = JSON.parse(fs.readFileSync("public/test_data/ecs_instance_summaries_with_tasks-" + clusterName + ".json", "utf8"));
       res.json(instanceSummaries);
     }
   }
 });
+
+function setClusterStore(clusterName, status, instanceSummaries) {
+  console.log(`Setting fetch status to "${status}" for cluster "${clusterName}"`);
+  clusterStore[clusterName] = {
+    clusterName: clusterName,
+    fetchStatus: status,
+    instanceSummaries: instanceSummaries
+  };
+  console.log(`clusterStore[${clusterName}] = ${getClusterStore(clusterName)}`)
+}
+
+function initialiseClusterStore(clusterName) {
+  console.log("initialiseClusterStore");
+  setClusterStore(clusterName, STATUS_INITIAL, {});
+  console.log("clusterStore[" + clusterName + "]");
+}
+
+function getClusterStore(clusterName) {
+  return clusterStore[clusterName];
+}
+
+function populateClusterStore(clusterName) {
+  console.log(`populateClusterStore(${clusterName})`);
+  setClusterStore(clusterName, STATUS_FETCHING, {});
+
+  let tasksArray = [];
+  getTasksWithTaskDefinitions(cluster)
+  .then(function (tasksResult) {
+    tasksArray = tasksResult;
+    return listAllContainerInstances(cluster);
+  })
+  .then(function (listAllContainerInstanceArns) {
+    debugLog(`\tFound ${listAllContainerInstanceArns.length} ContainerInstanceARNs...`);
+    if (listAllContainerInstanceArns.length === 0) {
+      return new Promise(function (resolve, reject) {
+        resolve(null);
+      });
+    } else {
+      const containerInstanceBatches = listAllContainerInstanceArns.map(function (instances, index) {
+        return index % maxSize === 0 ? listAllContainerInstanceArns.slice(index, index + maxSize) : null;
+      }).filter(function (instances) {
+        return instances;
+      });
+      return batchPromises(1, containerInstanceBatches, containerInstanceBatch => new Promise((resolve, reject) => {
+        // The containerInstanceBatch iteratee will fire after each batch
+        debugLog(`\tCalling ecs.describeContainerInstances for Container Instance batch: ${containerInstanceBatch}`);
+        resolve(ecs.describeContainerInstances({
+          cluster: cluster,
+          containerInstances: containerInstanceBatch
+        }).promise().then(delayPromise(AWS_API_DELAY)));
+      }));
+    }
+  })
+  .then(function (describeContainerInstancesResponses) {
+    if (!describeContainerInstancesResponses || describeContainerInstancesResponses.length === 0) {
+      return new Promise(function (resolve, reject) {
+        console.warn("No Container Instances found");
+        res.json([]);
+      });
+    } else {
+      const containerInstances = describeContainerInstancesResponses.reduce(function (acc, current) {
+        return acc.concat(current.data.containerInstances);
+      }, []);
+      const ec2instanceIds = containerInstances.map(function (i) {
+        return i.ec2InstanceId;
+      });
+      console.log(`Found ${ec2instanceIds.length} ec2InstanceIds: ${ec2instanceIds}`);
+      return ec2.describeInstances({InstanceIds: ec2instanceIds}).promise()
+      .then(function (ec2Instances) {
+        const instances = [].concat.apply([], ec2Instances.data.Reservations.map(function (r) {
+          return r.Instances
+        }));
+        const privateIpAddresses = instances.map(function (i) {
+          return i.PrivateIpAddress
+        });
+        console.log(`\twith ${privateIpAddresses.length} matching Private IP addresses: ${privateIpAddresses}`);
+        const instanceSummaries = containerInstances.map(function (instance) {
+          const ec2IpAddress = instances.find(function (i) {
+            return i.InstanceId === instance.ec2InstanceId
+          }).PrivateIpAddress;
+          return {
+            "ec2IpAddress": ec2IpAddress,
+            "ec2InstanceId": instance.ec2InstanceId,
+            "ec2InstanceConsoleUrl": "https://console.aws.amazon.com/ec2/v2/home?region=" + AWS.config.region + "#Instances:instanceId=" + instance.ec2InstanceId,
+            "ecsInstanceConsoleUrl": "https://console.aws.amazon.com/ecs/home?region=" + AWS.config.region + "#/clusters/" + cluster + "/containerInstances/" + instance["containerInstanceArn"].substring(instance["containerInstanceArn"].lastIndexOf("/") + 1),
+            "registeredCpu": utils.registeredCpu(instance),
+            "registeredMemory": utils.registeredMemory(instance),
+            "remainingCpu": utils.remainingCpu(instance),
+            "remainingMemory": utils.remainingMemory(instance),
+            "tasks": tasksArray.filter(function (t) {
+              return t.containerInstanceArn === instance.containerInstanceArn;
+            })
+          }
+        });
+        setClusterStore(clusterName, STATUS_FETCHED, instanceSummaries);
+        res.json(getClusterStore(clusterName));
+      });
+    }
+  })
+  .catch(function (err) {
+    sendErrorResponse(err, res);
+  });
+}
 
 router.get('/api/cluster_names', function (req, res, next) {
   const live = req.query.static !== 'true';
