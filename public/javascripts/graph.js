@@ -4,8 +4,16 @@ function taskFamilyAndRevision(t) {
   return t.taskDefinitionArn.substring(t.taskDefinitionArn.lastIndexOf('/') + 1)
 }
 
-function toBytes(megabytes) {
-  return megabytes * 1000000;
+// ECS API returns memory as MBs and CPU as CPU Units
+// For memory we want to convert from MBs (e.g. 4096 MBs) to bytes (4096000) to show correct units on Y axis
+function translateResourceAmountForYAxis(resourceAmount, resourceType) {
+  if (resourceType == ResourceEnum.MEMORY) {
+    return resourceAmount * 1000000;
+  } else if (resourceType == ResourceEnum.CPU) {
+    return resourceAmount;
+  } else {
+    throw "Unknown resource type: " + resourceType;
+  }
 }
 
 function showInfo(graph, message) {
@@ -181,7 +189,7 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
       return registeredResource(d, resourceType);
     });
     // Set Y axis linear domain range from 0 to maximum memory/cpu in bytes
-    yRange.domain([0, toBytes(maxResource)]);
+    yRange.domain([0, translateResourceAmountForYAxis(maxResource, resourceType)]);
 
     // Draw X axis
     const xAxisLabels = graph.append("g")
@@ -261,10 +269,10 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
       .attr("class", "instance-block")
       .attr("width", xRange.rangeBand())
       .attr("y", function (d) {
-        return yRange(toBytes(registeredResource(d, resourceType)))
+        return yRange(translateResourceAmountForYAxis(registeredResource(d, resourceType), resourceType))
       })
       .attr("height", function (d) {
-        return yRange(toBytes(maxResource - (registeredResource(d, resourceType))));
+        return yRange(translateResourceAmountForYAxis(maxResource - (registeredResource(d, resourceType)), resourceType));
       });
 
     if (showTaskBreakdown) {
@@ -277,10 +285,10 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
         .attr("class", "task-block")
         .attr("width", xRange.rangeBand())
         .attr("y", function (d) {
-          return yRange(toBytes(d.d3Data.y1));
+          return yRange(translateResourceAmountForYAxis(d.d3Data.y1, resourceType));
         })
         .attr("height", function (d) {
-          return yRange(toBytes(d.d3Data.y0)) - yRange(toBytes(d.d3Data.y1));
+          return yRange(translateResourceAmountForYAxis(d.d3Data.y0, resourceType)) - yRange(translateResourceAmountForYAxis(d.d3Data.y1, resourceType));
         })
         .style("fill", function (d) {
           return colorRange(d.d3Data.name);
@@ -345,11 +353,11 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
       instance.append("rect")
         .attr("width", xRange.rangeBand())
         .attr("y", function (d) {
-          const usedCpu = toBytes(registeredResource(d, resourceType)) - toBytes(remainingResource(d, resourceType));
+          const usedCpu = translateResourceAmountForYAxis(registeredResource(d, resourceType), resourceType) - translateResourceAmountForYAxis(remainingResource(d, resourceType), resourceType);
           return yRange(usedCpu)
         })
         .attr("height", function (d) {
-          return yRange(toBytes(remainingResource(d, resourceType))) - yRange(toBytes(registeredResource(d, resourceType)));
+          return yRange(translateResourceAmountForYAxis(remainingResource(d, resourceType), resourceType)) - yRange(translateResourceAmountForYAxis(registeredResource(d, resourceType), resourceType));
         })
         .style("fill", "orange")
         .style("stroke", "grey");
