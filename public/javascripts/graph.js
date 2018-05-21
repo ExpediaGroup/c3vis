@@ -180,8 +180,9 @@ function renderGraph(timestampDivId, chartDivId, legendDivId, cluster, resourceT
 
     // TODO: Move this to footer
     graph.append("g")
-      .attr("class", "fetch-timestamp")
       .append("text")
+      .attr("x", 30)
+      .attr("y", -5)
       .text(localizedClusterCacheTimestamp ? `Fetched: ${localizedClusterCacheTimestamp}` : "No fetch timestamp available");
 
     let uniqueTaskDefs = instanceSummaries.reduce(function (acc, current) {
