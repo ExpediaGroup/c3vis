@@ -3,7 +3,7 @@ var ResourceEnum = {
     CPU: 1,
     properties: {
         0: {name: "memory", value: 0, label: "Memory"},
-        1: {name: "cpu", value: 1, label: "CPU"}
+        1: {name: "cpu", value: 1, label: "CPU Units"}
     }
 };
 

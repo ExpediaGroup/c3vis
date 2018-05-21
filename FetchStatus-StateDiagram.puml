@@ -1,0 +1,38 @@
+@startuml
+
+'[*]      --> null
+[*]     --> INITIAL
+INITIAL  --> FETCHING
+FETCHING --> FETCHED
+'INITIAL  --> null  : Expired
+'FETCHING --> null  : Expired
+'FETCHED  --> null  : Expired
+'ERROR    --> null  : Expired
+INITIAL  --> ERROR : Failed
+FETCHING --> ERROR : Failed
+FETCHED  --> ERROR : Failed
+
+'FETCHED  --> [*]   : Success
+'ERROR    --> [*]   : Error
+
+@enduml
+
+@startuml
+
+[*]      --> null
+null     --> INITIAL
+INITIAL  --> FETCHING
+FETCHING --> FETCHED
+INITIAL  --> null  : Expired
+FETCHING --> null  : Expired
+FETCHED  --> null  : Expired
+ERROR    --> null  : Expired
+INITIAL  --> ERROR
+FETCHING --> ERROR
+FETCHED  --> ERROR
+
+'FETCHED  --> [*]   : Success
+'ERROR    --> [*]   : Error
+
+@enduml
+

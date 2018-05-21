@@ -131,19 +131,38 @@ const TOTAL_HEIGHT = 400;
 const DEFAULT_GRAPH_WIDTH = 1000;
 const EXPANDED_GRAPH_WIDTH = 1300;
 
-function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError) {
+function renderErrorGraph(chartDivId, errorMsg, onError) {
+  const graph = recreateMainGraphElement(chartDivId, DEFAULT_GRAPH_WIDTH, LEFT_MARGIN, RIGHT_MARGIN, TOTAL_HEIGHT, GRAPH_TOP_MARGIN, GRAPH_BOTTOM_MARGIN);
+  handleError(errorMsg, graph, onError);
+  return graph;
+}
+
+function errorResponseText(apiResponseError) {
+  const errorMsg = apiResponseError instanceof XMLHttpRequest
+      ? apiResponseError.responseText
+      : JSON.stringify(apiResponseError);
+  return `Server Error: ${errorMsg}`;
+}
+
+function renderGraph(timestampDivId, chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError) {
   if (window.apiResponseError) {
-    const errorMsg = "Server Error: " + (window.apiResponseError instanceof XMLHttpRequest ? window.apiResponseError.responseText : JSON.stringify(window.apiResponseError));
-    const graph = recreateMainGraphElement(chartDivId, DEFAULT_GRAPH_WIDTH, LEFT_MARGIN, RIGHT_MARGIN, TOTAL_HEIGHT, GRAPH_TOP_MARGIN, GRAPH_BOTTOM_MARGIN);
-    handleError(errorMsg, graph, onError);
-    return graph;
+    const apiResponseError = window.apiResponseError;
+    const errorMsg = `Server Error: ${errorResponseText(apiResponseError)}`;
+    return renderErrorGraph(chartDivId, errorMsg, onError);
+  } else if (window.apiResponseData == null || window.apiResponseData.instanceSummaries === null) {
+    const errorMsg = "Response from server contains no data.";
+    return renderErrorGraph(chartDivId, errorMsg, onError);
   }
 
   const showTaskBreakdown = true;  // TODO: Parameterise
 
+  const instanceSummaries = window.apiResponseData.instanceSummaries;
+  const createTimestamp = window.apiResponseData.createTimestamp;
+  const localizedClusterCacheTimestamp = new Date(Date.parse(createTimestamp));
+
   try {
     const resourceType = parseResourceType(resourceTypeText, ResourceEnum.MEMORY);
-    const graphWidth = window.apiResponseError ? DEFAULT_GRAPH_WIDTH : (window.apiResponseData.length > 50 ? EXPANDED_GRAPH_WIDTH : DEFAULT_GRAPH_WIDTH) - LEFT_MARGIN - RIGHT_MARGIN; //establishes width based on data set size
+    const graphWidth = window.apiResponseError ? DEFAULT_GRAPH_WIDTH : (instanceSummaries.length > 50 ? EXPANDED_GRAPH_WIDTH : DEFAULT_GRAPH_WIDTH) - LEFT_MARGIN - RIGHT_MARGIN; //establishes width based on data set size
     const colorRange = d3.scale.ordinal().range(colorbrewer.Pastel1[9].concat(colorbrewer.Pastel2[8]).concat(colorbrewer.Set1[9]).concat(colorbrewer.Set2[8]).concat(colorbrewer.Set3[12]));
     const xRange = d3.scale.ordinal().rangeRoundBands([10, graphWidth], .1);
     const yRange = d3.scale.linear().rangeRound([GRAPH_HEIGHT, 0]);
@@ -153,13 +172,19 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
     // Main graph area
     const graph = recreateMainGraphElement(chartDivId, graphWidth, LEFT_MARGIN, RIGHT_MARGIN, TOTAL_HEIGHT, GRAPH_TOP_MARGIN, GRAPH_BOTTOM_MARGIN);
 
-    if (window.apiResponseData.length == 0) {
+    if (instanceSummaries.length == 0) {
       showInfo(graph, "No instances are registered for the '" + cluster + "' cluster.");
       onCompletion();
       return graph;
     }
 
-    let uniqueTaskDefs = window.apiResponseData.reduce(function (acc, current) {
+    // TODO: Move this to footer
+    graph.append("g")
+      .attr("class", "fetch-timestamp")
+      .append("text")
+      .text(localizedClusterCacheTimestamp ? `Fetched: ${localizedClusterCacheTimestamp}` : "No fetch timestamp available");
+
+    let uniqueTaskDefs = instanceSummaries.reduce(function (acc, current) {
       return acc.concat(current.tasks.map(function (t) {
         return taskFamilyAndRevision(t);
       }))
@@ -171,7 +196,7 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
 
     colorRange.domain(uniqueTaskDefs);
 
-    window.apiResponseData.forEach(function (instance) {
+    instanceSummaries.forEach(function (instance) {
       // Add d3Data to each task for later display
       let y0 = 0;
       instance.tasks.forEach(function (task) {
@@ -180,12 +205,12 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
     });
 
     // Set X axis ordinal domain range to be list of server names
-    xRange.domain(window.apiResponseData.map(function (d) {
+    xRange.domain(instanceSummaries.map(function (d) {
       return d.ec2IpAddress;
     }));
 
     // Calculate maximum resource (memory/cpu) across all servers
-    const maxResource = d3.max(window.apiResponseData, function (d) {
+    const maxResource = d3.max(instanceSummaries, function (d) {
       return registeredResource(d, resourceType);
     });
     // Set Y axis linear domain range from 0 to maximum memory/cpu in bytes
@@ -207,13 +232,13 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
       {
         title: 'Open ECS Container Instance Console',
         action: function (elm, d, i) {
-          window.open(ecsInstanceConsoleUrl(window.apiResponseData, d), '_blank');
+          window.open(ecsInstanceConsoleUrl(instanceSummaries, d), '_blank');
         }
       },
       {
         title: 'Open EC2 Instance Console',
         action: function (elm, d, i) {
-          window.open(ec2InstanceConsoleUrl(window.apiResponseData, d), '_blank');
+          window.open(ec2InstanceConsoleUrl(instanceSummaries, d), '_blank');
         }
       }
     ];
@@ -257,7 +282,7 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
     // TODO: Request task data in parallel with instance data. Draw instance outline first then draw task boxes
     // Create svg elements for each server
     const instance = graph.selectAll(".instance")
-      .data(window.apiResponseData)
+      .data(instanceSummaries)
       .enter().append("g")
       .attr("class", "g")
       .attr("transform", function (d) {
@@ -372,7 +397,58 @@ function renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompl
   }
 }
 
-function populateGraph(useStaticData, chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError) {
+function calculateInterval(attemptIndex, defaultInterval) {
+  // For first 4 attempts, take shorter but progressively longer intervals.
+  // E.g. if defaultInterval = 5000 then take 1s,2s,3s,4s for first 4 attempts respectively
+  return attemptIndex < 5 ? attemptIndex * (defaultInterval / 5) : defaultInterval;
+}
+
+function pollUntilFetched(c3visApiUrl, forceRefresh, attemptIndex, onFetched, onError) {
+  const interval = 5000;
+  const maxAttempts = 120;
+
+  if (attemptIndex >= maxAttempts) {
+    const errorMsg = `Could not successfully retrieve cluster details from '${c3visApiUrl}' after ${maxAttempts} polling attempts.`;
+    onError(errorMsg);
+    return;
+  }
+
+  const optionalForceRefreshParam = (forceRefresh ? "&forceRefresh=true" : "");
+  const updatedC3visApiUrl = c3visApiUrl + optionalForceRefreshParam;
+
+  console.log(`Polling '${updatedC3visApiUrl}' until found in 'fetched' state.  Attempt #${attemptIndex}/${maxAttempts}`);
+
+  // TODO: Upgrade to D3 v5, convert to use promises
+
+  d3.json(updatedC3visApiUrl, function (apiResponseError, apiResponseData) {
+    // TODO: Display multiple graphs if server returns > 100 instances
+    if (apiResponseError != null) {
+      window.apiResponseError = apiResponseError;
+      console.debug(`  window.apiResponseError set to '${window.apiResponseError}'`);
+      onError(errorResponseText(apiResponseError));
+    }
+    if (apiResponseData != null) {
+      window.apiResponseData = apiResponseData;
+      console.debug(`  window.apiResponseData contains response data for cluster '${apiResponseData.clusterName}'.`);
+      if (apiResponseData.errorDetails != null) {
+        onError(`Server Error: ${apiResponseData.errorDetails}`);
+      } else {
+        console.debug(`  Found '${apiResponseData.fetchStatus}' status in response from '${c3visApiUrl}'`);
+        if (apiResponseData.fetchStatus === 'fetched') {
+          onFetched();
+        } else {
+          console.debug(`  Not yet fetched, trying again after ${calculateInterval(attemptIndex, interval)}ms`);
+          setTimeout(function () {
+            // Use forceRefresh=false to ensure server is instructed to refresh only once at start of polling loop
+            pollUntilFetched(c3visApiUrl, false, attemptIndex + 1, onFetched, onError)
+          }, calculateInterval(attemptIndex, interval));
+        }
+      }
+    }
+  });
+}
+
+function populateGraph(useStaticData, forceRefresh, timestampDivId, chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError) {
   try {
     if (!cluster && !useStaticData) {
       handleError("Please select a cluster.", null, onError);
@@ -383,17 +459,16 @@ function populateGraph(useStaticData, chartDivId, legendDivId, cluster, resource
     const optionalStaticParam = (useStaticData ? "&static=true" : "");
     const c3visApiUrl = "/api/instance_summaries_with_tasks?" + clusterParam + optionalStaticParam;
 
-    // after a GET all data from API begin drawing graph
-    d3.json(c3visApiUrl, function (apiResponseError, apiResponseData) {
-      // TODO: Display multiple graphs if server returns > 100 instances
-
-              window.apiResponseError = apiResponseError;
-              window.apiResponseData = apiResponseData;
-              console.log("For debugging: window.apiResponseData, window.apiResponseError");
-
-              renderGraph(chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError);
-            });
+    window.fetchStatus = '';
+    console.debug(`Requesting '${c3visApiUrl}'...`);
+    // TODO: Timeout after 10mins
+    pollUntilFetched(c3visApiUrl, forceRefresh, 1, function() {
+      renderGraph(timestampDivId, chartDivId, legendDivId, cluster, resourceTypeText, onCompletion, onError);
+    }, function(e) {
+      renderErrorGraph(chartDivId, `${e.message || JSON.stringify(e)}`, onError);
+    });
   } catch (e) {
-    handleError("ERROR. Uncaught Exception: " + e, null, onError);
+    console.error(e.stack);
+    renderErrorGraph(chartDivId, `ERROR. Uncaught Exception: ${e}`, onError);
   }
 }

@@ -1,29 +1,30 @@
-const AWS_API_DELAY = 100;
+const config = require('../config/config');
 const debug = require('debug')('api');
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');
-// See: https://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html
+const moment = require('moment');
 const AWS = require('aws-sdk-promise');
 const batchPromises = require('batch-promises');
-// AWS variable now has default credentials from Shared Credentials File or Environment Variables.
-// Override default credentials with ./aws_config.json if it exists
-const AWS_CONFIG_FILE = './aws_config.json';
-if (fs.existsSync(AWS_CONFIG_FILE)) {
-  console.log(`Updating with settings from '${AWS_CONFIG_FILE}'...`);
-  AWS.config.update(JSON.parse(fs.readFileSync(AWS_CONFIG_FILE, 'utf8')));
+// AWS variable has default credentials from Shared Credentials File or Environment Variables.
+//   (see: https://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html)
+// Override default credentials with configFile (e.g. './aws_config.json') if it exists
+if (fs.existsSync(config.aws.configFile)) {
+  console.log(`Updating with settings from '${config.aws.configFile}'...`);
+  AWS.config.update(JSON.parse(fs.readFileSync(config.aws.configFile, 'utf8')));
 }
 console.log(`Targeting AWS region '${AWS.config.region}'`);
 
 const utils = require('./utils');
 
+const FetchStatus = require('./fetchStatus');
+const ClusterState = require('./clusterState');
+const clusterStateCache = require('../routes/clusterStateCache');
+const clusterStateCacheTtl = config.clusterStateCacheTtl;
 const taskDefinitionCache = require('memory-cache');
-
-var clusterStore = {};
 
 const ecs = new AWS.ECS();
 const ec2 = new AWS.EC2();
-const maxSize = 100;
 
 /* Home page */
 
@@ -40,67 +41,106 @@ router.get('/', function (req, res, next) {
  * Endpoints take a "?static=true" query param to enable testing with static data when AWS credentials aren't available
  */
 
-const STATUS_INITIAL = "initial";
-const STATUS_FETCHING = "fetching";
-const STATUS_FETCHED = "fetched";
-
 router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
-  console.log(`/api/instance_summaries_with_tasks: cluster='${req.query.cluster}', live=${!req.query.static})`);
-  debugLog(`Headers: ${JSON.stringify(req.headers, null, 4)}`);
-
-  if (!req.query.cluster) {
-    send400Response("Please provide a 'cluster' parameter", res);
-  } else {
-    const clusterName = req.query.cluster;
-    const live = req.query.static !== 'true';
-    if (live) {
-      if (!getClusterStore(clusterName)) {
-        new Promise(function (resolve) {
-          initialiseClusterStore(clusterName);
-          resolve();
-        })
-        .then(function () {
-          // Return to client
-          res.json(getClusterStore(clusterName));
-        });
-        // Continue populating cluster store while client polls asynchronously
-        populateClusterStore(clusterName)
-      } else {
-        console.log("After populateState... responding with ", getClusterStore(clusterName));
-        // Return currently fetched cluster store to client
-        res.json(getClusterStore(clusterName));
-      }
+  Promise.resolve()
+  .then(function() {
+    debugLog(`Headers: ${JSON.stringify(req.headers, null, 4)}`);
+    if (!req.query.cluster) {
+      send400Response("Please provide a 'cluster' parameter", res);
+      reject("No 'cluster' parameter provided.");
     } else {
-      // Return some static instance details with task details
-      const instanceSummaries = JSON.parse(fs.readFileSync("public/test_data/ecs_instance_summaries_with_tasks-" + clusterName + ".json", "utf8"));
-      res.json(instanceSummaries);
+      const clusterName = req.query.cluster;
+      const useStaticData = req.query.static === 'true';
+      const forceRefresh = req.query.forceRefresh === 'true';
+      return getInstanceSummariesWithTasks(res, clusterName, useStaticData, forceRefresh);
     }
-  }
+  })
+  .catch(function (err) {
+    const reason = new Error(`Failed getting instance summaries: ${err}`);
+    reason.stack += `\nCaused By:\n` + err.stack;
+    sendErrorResponse(reason, res);
+  });
 });
 
-function setClusterStore(clusterName, status, instanceSummaries) {
+function getInstanceSummariesWithTasks(res, clusterName, useStaticData, forceRefresh) {
+  return Promise.resolve(getOrInitializeClusterState(clusterName, forceRefresh))
+  .then(function(clusterState) {
+    if (clusterState == null) {
+      throw new Error(`clusterState for '${clusterName}' cluster not cached and could not be initialised.`);
+    } else if (clusterState.fetchStatus === FetchStatus.ERROR) {
+      // Server previously encountered an error while asynchronously processing cluster. Send error to client.
+      console.log(`Sending current state to client with fetchStatus '${clusterState.fetchStatus}'.`);
+      sendErrorResponse(clusterState.errorDetails, res);
+      return clusterState;
+    } else {
+      // Send current state to client. If only just initialised, next then() block will process in background while client polls periodically
+      console.log(`Sending current state to client with fetchStatus '${clusterState.fetchStatus}'.`);
+      res.json(clusterState);
+      return clusterState;
+    }
+  })
+  .then(function(clusterState) {
+    if (clusterState.fetchStatus === FetchStatus.INITIAL) {
+      // Populate cluster state in the background while client polls asynchronously
+      if (useStaticData) {
+        populateStaticClusterStateWithInstanceSummaries(clusterName);
+      } else {
+        populateClusterStateWithInstanceSummaries(clusterName);
+      }
+    }
+  })
+  .catch(function(err) {
+    console.log(`${err}\n${err.stack}`);
+    setClusterStateError(clusterName, err);
+    // NOTE: Don't re-throw here, to avoid 'UnhandledPromiseRejectionWarning' in router calling function
+  });
+}
+
+function populateStaticClusterStateWithInstanceSummaries(clusterName) {
+  console.log(`populateStaticClusterStateWithInstanceSummaries(${clusterName})`);
+  updateClusterState(clusterName, FetchStatus.FETCHING, {});
+  try {
+    // Return some static instance details with task details
+    const text = fs.readFileSync("public/test_data/ecs_instance_summaries_with_tasks-" + clusterName + ".json", "utf8");
+    const instanceSummaries = JSON.parse(text);
+    updateClusterState(clusterName, FetchStatus.FETCHED, instanceSummaries);
+  } catch (err) {
+    console.log(`${err}\n${err.stack}`);
+    setClusterStateError(clusterName, `Encountered error processing static file for '${clusterName}' cluster: ${err}`);
+  }
+}
+
+function updateClusterState(clusterName, status, instanceSummaries) {
   console.log(`Setting fetch status to "${status}" for cluster "${clusterName}"`);
-  clusterStore[clusterName] = {
-    clusterName: clusterName,
-    fetchStatus: status,
-    instanceSummaries: instanceSummaries
-  };
-  console.log(`clusterStore[${clusterName}] = ${getClusterStore(clusterName)}`)
+  const clusterState = getOrInitializeClusterState(clusterName);
+  clusterState.fetchStatus = status;
+  clusterState.instanceSummaries = instanceSummaries;
+  console.log(`Updated: clusterState for '${clusterName}' cluster = ${JSON.stringify(clusterState)}`)
 }
 
-function initialiseClusterStore(clusterName) {
-  console.log("initialiseClusterStore");
-  setClusterStore(clusterName, STATUS_INITIAL, {});
-  console.log("clusterStore[" + clusterName + "]");
+function getOrInitializeClusterState(clusterName, forceRefresh = false) {
+  // NOTE: Cache will return null if cluster is not yet cached OR if cluster entry has expired
+  let clusterState = clusterStateCache.get(clusterName);
+  if (clusterState != null && forceRefresh) {
+    console.log(`Client requested a force refresh of cluster data already cached at ${clusterState.createTimestamp} (${moment(clusterState.createTimestamp).fromNow()})`);
+  }
+  if (clusterState == null || forceRefresh) {
+    clusterState = new ClusterState(clusterName);
+    clusterStateCache.put(clusterName, clusterState, clusterStateCacheTtl);
+  }
+  return clusterState;
 }
 
-function getClusterStore(clusterName) {
-  return clusterStore[clusterName];
+function setClusterStateError(clusterName, errorDetails) {
+  console.log(`Setting errorDetails for '${clusterName}' cluster to: ${errorDetails}`);
+  const clusterState = getOrInitializeClusterState(clusterName);
+  clusterState.fetchStatus = FetchStatus.ERROR;
+  clusterState.errorDetails = errorDetails;
 }
 
-function populateClusterStore(clusterName) {
-  console.log(`populateClusterStore(${clusterName})`);
-  setClusterStore(clusterName, STATUS_FETCHING, {});
+function populateClusterStateWithInstanceSummaries(cluster) {
+  console.log(`populateClusterStateWithInstanceSummaries(${cluster})`);
+  updateClusterState(cluster, FetchStatus.FETCHING, {});
 
   let tasksArray = [];
   getTasksWithTaskDefinitions(cluster)
@@ -116,7 +156,7 @@ function populateClusterStore(clusterName) {
       });
     } else {
       const containerInstanceBatches = listAllContainerInstanceArns.map(function (instances, index) {
-        return index % maxSize === 0 ? listAllContainerInstanceArns.slice(index, index + maxSize) : null;
+        return index % config.aws.describeInstancesPageSize === 0 ? listAllContainerInstanceArns.slice(index, index + config.aws.describeInstancesPageSize) : null;
       }).filter(function (instances) {
         return instances;
       });
@@ -126,7 +166,7 @@ function populateClusterStore(clusterName) {
         resolve(ecs.describeContainerInstances({
           cluster: cluster,
           containerInstances: containerInstanceBatch
-        }).promise().then(delayPromise(AWS_API_DELAY)));
+        }).promise().then(delayPromise(config.aws.apiDelay)));
       }));
     }
   })
@@ -134,7 +174,7 @@ function populateClusterStore(clusterName) {
     if (!describeContainerInstancesResponses || describeContainerInstancesResponses.length === 0) {
       return new Promise(function (resolve, reject) {
         console.warn("No Container Instances found");
-        res.json([]);
+        updateClusterState(cluster, FetchStatus.FETCHED, []);
       });
     } else {
       const containerInstances = describeContainerInstancesResponses.reduce(function (acc, current) {
@@ -143,7 +183,7 @@ function populateClusterStore(clusterName) {
       const ec2instanceIds = containerInstances.map(function (i) {
         return i.ec2InstanceId;
       });
-      console.log(`Found ${ec2instanceIds.length} ec2InstanceIds: ${ec2instanceIds}`);
+      console.log(`Found ${ec2instanceIds.length} ec2InstanceIds for cluster '${cluster}': ${ec2instanceIds}`);
       return ec2.describeInstances({InstanceIds: ec2instanceIds}).promise()
       .then(function (ec2Instances) {
         const instances = [].concat.apply([], ec2Instances.data.Reservations.map(function (r) {
@@ -171,13 +211,12 @@ function populateClusterStore(clusterName) {
             })
           }
         });
-        setClusterStore(clusterName, STATUS_FETCHED, instanceSummaries);
-        res.json(getClusterStore(clusterName));
+        updateClusterState(cluster, FetchStatus.FETCHED, instanceSummaries);
       });
     }
   })
-  .catch(function (err) {
-    sendErrorResponse(err, res);
+  .catch(function(err) {
+    setClusterStateError(cluster, err);
   });
 }
 
@@ -194,7 +233,7 @@ router.get('/api/cluster_names', function (req, res, next) {
       }
     });
   } else {
-    res.json(["demo-cluster-8", "demo-cluster-50", "demo-cluster-75", "demo-cluster-100"]);
+    res.json(["demo-cluster-8", "demo-cluster-50", "demo-cluster-75", "demo-cluster-100", "invalid"]);
   }
 });
 
@@ -211,7 +250,7 @@ function listAllContainerInstances(cluster) {
 }
 
 function listContainerInstanceWithToken(cluster, token, instanceArns) {
-  const params = {cluster: cluster, maxResults: maxSize};
+  const params = {cluster: cluster, maxResults: config.aws.listInstancesPageSize};
   if (token) {
     params['nextToken'] = token;
   }
@@ -242,13 +281,14 @@ function listAllTasks(cluster) {
 }
 
 function listTasksWithToken(cluster, token, tasks) {
-  const params = {cluster: cluster, maxResults: maxSize};
+  const params = {cluster: cluster, maxResults: config.aws.listTasksPageSize};
   if (token) {
     params['nextToken'] = token;
   }
   debugLog(`\tCalling ecs.listTasks with token: ${token} ...`);
+  // TODO: Handle errors, e.g.: (node:27333) UnhandledPromiseRejectionWarning: ClusterNotFoundException: Cluster not found.
   return ecs.listTasks(params).promise()
-    .then(delayPromise(AWS_API_DELAY))
+    .then(delayPromise(config.aws.apiDelay))
     .then(function (tasksResponse) {
       debugLog(`\t\tReceived tasksResponse with ${tasksResponse.data.taskArns.length} Task ARNs`);
       const taskArns = tasks.concat(tasksResponse.data.taskArns);
@@ -275,30 +315,30 @@ function getTasksWithTaskDefinitions(cluster) {
           resolve([]);
         } else {
           return allTaskArns.map(function (tasks, index) {
-            return index % maxSize === 0 ? allTaskArns.slice(index, index + maxSize) : null;
+            return index % config.aws.describeTasksPageSize === 0 ? allTaskArns.slice(index, index + config.aws.describeTasksPageSize) : null;
           }).filter(function (tasks) {
             return tasks;
           });
         }
       })
       .then(function (taskBatches) {
-        // Batch the batches :) - describe up to 2 batches of batches of maxSize ARNs at a time
+        // Describe up to maxSimultaneousDescribeTasksCalls (e.g. 2) pages of describeTasksPageSize (e.g. 100) ARNs at a time
         // Without batchPromises, we will fire all ecs.describeTasks calls one after the other and could run into API rate limit issues
-        return batchPromises(2, taskBatches, taskBatch => new Promise((resolve, reject) => {
+        return batchPromises(config.aws.maxSimultaneousDescribeTasksCalls, taskBatches, taskBatch => new Promise((resolve, reject) => {
           // The iteratee will fire after each batch
           debugLog(`\tCalling ecs.describeTasks for Task batch: ${taskBatch}`);
           resolve(ecs.describeTasks({cluster: cluster, tasks: taskBatch}).promise()
-            .then(delayPromise(AWS_API_DELAY)));
+            .then(delayPromise(config.aws.apiDelay)));
         }));
       })
       .then(function (describeTasksResponses) {
         tasksArray = describeTasksResponses.reduce(function (acc, current) {
           return acc.concat(current.data.tasks);
         }, []);
-        console.log(`Found ${tasksArray.length} tasks`);
-        // Wait for the responses from 20 describeTaskDefinition calls before invoking another 20 calls
+        console.log(`Found ${tasksArray.length} tasks for cluster '${cluster}'`);
+        // Wait for the responses from maxSimultaneousDescribeTaskDefinitionCalls describeTaskDefinition calls before invoking another maxSimultaneousDescribeTaskDefinitionCalls calls
         // Without batchPromises, we will fire all ecs.describeTaskDefinition calls one after the other and could run into API rate limit issues
-        return batchPromises(1, tasksArray, task => new Promise((resolve, reject) => {
+        return batchPromises(config.aws.maxSimultaneousDescribeTaskDefinitionCalls, tasksArray, task => new Promise((resolve, reject) => {
           const cachedTaskDef = taskDefinitionCache.get(task.taskDefinitionArn);
           if (cachedTaskDef) {
             debugLog(`\tReusing cached Task Definition for Task Definition ARN: ${task.taskDefinitionArn}`);
@@ -306,7 +346,7 @@ function getTasksWithTaskDefinitions(cluster) {
           } else {
             debugLog(`\tCalling ecs.describeTaskDefinition for Task Definition ARN: ${task.taskDefinitionArn}`);
             resolve(ecs.describeTaskDefinition({taskDefinition: task.taskDefinitionArn}).promise()
-              .then(delayPromise(AWS_API_DELAY))
+              .then(delayPromise(config.aws.apiDelay))
               .then(function (taskDefinition) {
                 debugLog(`\t\tReceived taskDefinition for ARN "${task.taskDefinitionArn}". Caching in memory.`);
                 taskDefinitionCache.put(task.taskDefinitionArn, taskDefinition);
@@ -320,7 +360,7 @@ function getTasksWithTaskDefinitions(cluster) {
         }));
       })
       .then(function (taskDefs) {
-        console.log(`Found ${taskDefs.length} task definitions`);
+        console.log(`Found ${taskDefs.length} task definitions for cluster '${cluster}'`);
         // Fill in task details in tasksArray with taskDefinition details (e.g. memory, cpu)
         taskDefs.forEach(function (taskDef) {
           tasksArray
@@ -347,8 +387,7 @@ function send400Response(errMsg, res) {
 
 function sendErrorResponse(err, res) {
   console.log(err);
-  console.log(err.stack.split("\n"));
-  res.status(500).send(err.message);
+  res.status(500).send(err.message || err);
 }
 
 function debugLog(msg) {
