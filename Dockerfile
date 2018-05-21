@@ -1,6 +1,6 @@
 # https://hub.docker.com/r/library/node/
 
-FROM node:8.5-alpine
+FROM node:9.11.1-alpine
 
 # >> FIX:
 # Fixes error Ubuntu: "gyp ERR! stack Error: Can't find Python executable "python", you can set the PYTHON env variable"
