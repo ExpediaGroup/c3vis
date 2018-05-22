@@ -1,6 +1,6 @@
 # c3vis - Cloud Container Cluster Visualizer
 
-Helps visualize the resource utilisation of Amazon ECS clusters.
+Helps visualize the resource reservation of Amazon ECS clusters.
 
 Deploying software as “containers” promises to solve many problems with regards to interoperability of environments, speed to deploy, and cost reduction.
 But understanding where our software lives now becomes more difficult both for development and operations teams.
@@ -16,65 +16,14 @@ Each unique Task Definition is represented as a different color, with the legend
 Each Task will contain one or more containers, the task box shows accumulated reserved memory or CPU for all containers in the Task. ECS Services are not currently represented.
 
 
-## Configure
+## Configuration
 
-Displaying live ECS data requires server-side AWS credentials.
+See [CONFIGURATION](docs/CONFIGURATION.md) for details on server-side configurable options that affect cache entry TTL and AWS API call throttling.
 
-### Region
+## Configuring AWS SDK
 
-Before running, add a file named ```aws_config.json``` to this project root directory.  At a minimum set the default region:
-
-```
-{
-  "region": "<default-region>"
-}
-```
-
-Alternatively, set the environment variable "AWS_REGION" before starting the server.
-
-### Credentials
-
-AWS credentials properties "accessKeyId" and "secretAccessKey" can be added to the aws_config.json file as per https://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html.
-
-Otherwise, the credentials will be loaded from the Shared Credentials File or Environment Variables or IAM roles if deployed to an AWS instance.
-
-When using an IAM role, ensure the role has the following access:
-
-* ecs:listContainerInstances
-* ecs:describeContainerInstances
-* ecs:listTasks
-* ecs:describeTasks
-* ecs:describeTaskDefinition
-* ecs:listClusters
-* ec2:describeInstance
-
-Sample IAM Inline Policy:
-```
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ecs:listContainerInstances",
-                "ecs:describeContainerInstances",
-                "ecs:listTasks",
-                "ecs:describeTasks",
-                "ecs:describeTaskDefinition",
-                "ecs:listClusters",
-                "ec2:describeInstances"
-            ],
-            "Resource": [
-                "*"
-            ]
-        }
-    ]
-}
-```
-
-**WARNING:** c3vis makes ECS data from the above API calls (including environment variables in task definitions) available to clients/browsers.
-Ensure the c3vis server is available only to users that should have access to this information.
-
+See [AWS_SDK_CONFIGURATION](docs/AWS_SDK_CONFIGURATION.md) for instructions 
+on configuring the AWS SDK for server-side AWS connectivity.
 
 ## Requirements
 
@@ -82,7 +31,8 @@ Node >= 0.12
 
 ## Building and Running
 
-Server is based on ExpressJS. Client uses D3.js.
+The c3vis server is based on ExpressJS. The client predominantly uses D3.js, 
+jQuery and Bootstrap.
 
 Run the following to build and run the server ("package.json" contains instructions to pre-install required node modules):
 
@@ -90,14 +40,21 @@ Run the following to build and run the server ("package.json" contains instructi
 npm start
 ```
 
-This will run ```npm install``` and ```node --harmony ./bin/www```
-(NOTE: ```"--harmony"``` is required for ES6 functionality such as Array.find())
-
 Now browse to the app at `http://localhost:3000`.
 
-### Usage
+## Testing
 
-When a client browser first connects to the c3vis server the Cluster dropdown will be populated with ECS cluster names for the configured region.
+To run the server-side unit test suite with mocha and chai:
+ 
+```
+npm run test
+```
+
+## Usage
+
+### Approach
+
+When a client browser first connects to the c3vis server, the Cluster dropdown will be populated with ECS cluster names for the configured region.
 
 Select from the dropdown to view the resources allocated to that cluster. If no cluster names appear in the dropdown, check the server logs and ensure the correct region is configured (see below).
 
@@ -107,13 +64,32 @@ The Y axis shows total memory or CPU available for the instances. Memory is the 
 
 The X axis displays the Private IP Address for each EC2 instance. Right-clicking the IP address shows the context menu with links to browse the instance in the ECS and EC2 consoles.
 
+### AWS API Call Throttling
+
+In order to prevent AWS API Rate limiting issues for large clusters, the server:
+
+* Introduces a delay between API calls (configurable via `aws.apiDelay` setting)
+* Limits the number of items retrieved per page in `list` and `describe` API calls (configurable via `aws.*PageSize`)
+* Limits the number of asynchronous API calls it makes at a time (configurable via `aws.maxSimultaneous*Calls`)
+
+You can increase or decrease each of these settings to suit each environment c3vis is deployed to.
+
+### Short Polling, Server-Side Caching and Fetch Status
+
+For each cluster requested, the server caches cluster data in-memory while the client polls the server until the cache is populated.
+
+For an explanation on how the client polls the server for cluster data and the applicable fetch statuses, see [SHORT_POLLING_FETCH_STATUS](docs/SHORT_POLLING_FETCH_STATUS.md).
+
+
+## Debugging
+
 ### Sample Clusters for Testing
 
 From the browser, use a ```"?static=true"``` query parameter to have the server return static test data. Useful for testing when server is unable to connect to AWS.
 
 Browse to `http://localhost:3000/?static=true`.
 
-### Debug Logging
+### Server Debug Logging
 
 To see all debug log entries:
 
@@ -127,21 +103,7 @@ To see just API debug log entries:
 DEBUG=api npm start
 ```
 
-### Debugging
-
-Add the following line to server-side Javascript code to add a breakpoint:
-
-```
-debugger;
-```
-
-then run the debugger with:
-
-```
-node debug --harmony ./bin/www
-```
-
-### Running with Docker
+## Running with Docker
 
 Build and tag the image:
 
@@ -168,4 +130,4 @@ Created by [Matt Callanan](https://github.com/mattcallanan) with contributions f
 
 This project is available under the [Apache 2.0 License](http://www.apache.org/licenses/LICENSE-2.0.html).
 
-Copyright 2015 Expedia Inc.
+Copyright 2018 Expedia Inc.
