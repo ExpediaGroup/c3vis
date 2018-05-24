@@ -36,7 +36,10 @@ Otherwise, the credentials will be loaded as per priority listed [here](https://
 
 ## IAM Role Permissions
 
-When using an IAM role, ensure the role has the following access:
+### EC2 IAM Role Permissions
+
+When running c3vis on EC2 instances using an IAM role, ensure the role has the 
+following permissions:
 
 * `ecs:listContainerInstances`
 * `ecs:describeContainerInstances`
@@ -69,6 +72,14 @@ Sample IAM Inline Policy:
     ]
 }
 ```
+
+### ECS IAM Task Role
+
+When running c3vis on an ECS cluster, you can use an ECS Task IAM Role, which
+ can be created using the process documented [here](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html#create_task_iam_policy_and_role).
+Ensure the IAM Policy has the permissions listed above.
+
+## Security Warning 
 
 **WARNING:** c3vis makes ECS data from the above API calls (including environment variables in task definitions) available to clients/browsers.
 Ensure the c3vis server is available only to users that should have access to this information.
