@@ -22,6 +22,8 @@ const ClusterState = require('./clusterState');
 const clusterStateCache = require('../routes/clusterStateCache');
 const clusterStateCacheTtl = config.clusterStateCacheTtl;
 const taskDefinitionCache = require('memory-cache');
+const promiseDelayer = require('./promiseDelayer');
+const staticClusterDataProvider = require('./staticClusterDataProvider.js');
 
 const ecs = new AWS.ECS();
 const ec2 = new AWS.EC2();
@@ -31,10 +33,14 @@ const ec2 = new AWS.EC2();
 router.get('/', function (req, res, next) {
   res.render('index', {
     title: 'c3vis - Cloud Container Cluster Visualizer',
-    useStaticData: req.query.static,
+    useStaticData: staticDataRequested(req),
     resourceType: req.query.resourceType ? req.query.resourceType : 'memory'
   });
 });
+
+function staticDataRequested(req) {
+  return req.query.static ? (req.query.static.toLowerCase() === "true") : false;
+}
 
 /* API endpoints
  * =============
@@ -50,7 +56,7 @@ router.get('/api/instance_summaries_with_tasks', function (req, res, next) {
       reject("No 'cluster' parameter provided.");
     } else {
       const clusterName = req.query.cluster;
-      const useStaticData = req.query.static === 'true';
+      const useStaticData = staticDataRequested(req);
       const forceRefresh = req.query.forceRefresh === 'true';
       return getInstanceSummariesWithTasks(res, clusterName, useStaticData, forceRefresh);
     }
@@ -101,8 +107,7 @@ function populateStaticClusterStateWithInstanceSummaries(clusterName) {
   updateClusterState(clusterName, FetchStatus.FETCHING, {});
   try {
     // Return some static instance details with task details
-    const text = fs.readFileSync("public/test_data/ecs_instance_summaries_with_tasks-" + clusterName + ".json", "utf8");
-    const instanceSummaries = JSON.parse(text);
+    const instanceSummaries = staticClusterDataProvider.getStaticClusterData(clusterName);
     updateClusterState(clusterName, FetchStatus.FETCHED, instanceSummaries);
   } catch (err) {
     console.log(`${err}\n${err.stack}`);
@@ -166,7 +171,7 @@ function populateClusterStateWithInstanceSummaries(cluster) {
         resolve(ecs.describeContainerInstances({
           cluster: cluster,
           containerInstances: containerInstanceBatch
-        }).promise().then(delayPromise(config.aws.apiDelay)));
+        }).promise().then(promiseDelayer.delay(config.aws.apiDelay)));
       }));
     }
   })
@@ -221,8 +226,14 @@ function populateClusterStateWithInstanceSummaries(cluster) {
 }
 
 router.get('/api/cluster_names', function (req, res, next) {
-  const live = req.query.static !== 'true';
-  if (live) {
+  const useStaticData = staticDataRequested(req);
+  getClusterNames(useStaticData, res);
+});
+
+function getClusterNames(useStaticData, res) {
+  if (useStaticData) {
+    res.json(["demo-cluster-8", "demo-cluster-50", "demo-cluster-75", "demo-cluster-100", "invalid"]);
+  } else {
     ecs.listClusters({}, function (err, data1) {
       if (err) {
         sendErrorResponse(err, res);
@@ -232,10 +243,8 @@ router.get('/api/cluster_names', function (req, res, next) {
         }));
       }
     });
-  } else {
-    res.json(["demo-cluster-8", "demo-cluster-50", "demo-cluster-75", "demo-cluster-100", "invalid"]);
   }
-});
+}
 
 function listAllContainerInstances(cluster) {
   return new Promise(function (resolve, reject) {
@@ -288,7 +297,7 @@ function listTasksWithToken(cluster, token, tasks) {
   debugLog(`\tCalling ecs.listTasks with token: ${token} ...`);
   // TODO: Handle errors, e.g.: (node:27333) UnhandledPromiseRejectionWarning: ClusterNotFoundException: Cluster not found.
   return ecs.listTasks(params).promise()
-    .then(delayPromise(config.aws.apiDelay))
+    .then(promiseDelayer.delay(config.aws.apiDelay))
     .then(function (tasksResponse) {
       debugLog(`\t\tReceived tasksResponse with ${tasksResponse.data.taskArns.length} Task ARNs`);
       const taskArns = tasks.concat(tasksResponse.data.taskArns);
@@ -328,7 +337,7 @@ function getTasksWithTaskDefinitions(cluster) {
           // The iteratee will fire after each batch
           debugLog(`\tCalling ecs.describeTasks for Task batch: ${taskBatch}`);
           resolve(ecs.describeTasks({cluster: cluster, tasks: taskBatch}).promise()
-            .then(delayPromise(config.aws.apiDelay)));
+            .then(promiseDelayer.delay(config.aws.apiDelay)));
         }));
       })
       .then(function (describeTasksResponses) {
@@ -346,7 +355,7 @@ function getTasksWithTaskDefinitions(cluster) {
           } else {
             debugLog(`\tCalling ecs.describeTaskDefinition for Task Definition ARN: ${task.taskDefinitionArn}`);
             resolve(ecs.describeTaskDefinition({taskDefinition: task.taskDefinitionArn}).promise()
-              .then(delayPromise(config.aws.apiDelay))
+              .then(promiseDelayer.delay(config.aws.apiDelay))
               .then(function (taskDefinition) {
                 debugLog(`\t\tReceived taskDefinition for ARN "${task.taskDefinitionArn}". Caching in memory.`);
                 taskDefinitionCache.put(task.taskDefinitionArn, taskDefinition);
@@ -392,23 +401,6 @@ function sendErrorResponse(err, res) {
 
 function debugLog(msg) {
   debug(msg);
-}
-
-// Introduce a delay to prevent Rate Exceeded errors
-// From: https://blog.raananweber.com/2015/12/01/writing-a-promise-delayer/
-// NOTE: https://www.npmjs.com/package/promise-pause does not work as the aws-sdk-promise library does not return a Promise but a thenable object
-function delayPromise(delay) {
-  //return a function that accepts a single variable
-  return function (data) {
-    //this function returns a promise.
-    return new Promise(function (resolve, reject) {
-      debugLog(`Pausing for ${delay}ms...`);
-      setTimeout(function () {
-        //a promise that is resolved after "delay" milliseconds with the data provided
-        resolve(data);
-      }, delay);
-    });
-  }
 }
 
 module.exports = router;
