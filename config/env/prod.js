@@ -1,3 +1,4 @@
 module.exports = {
-  // add production environment config overrides here and enable at startup with NODE_ENV=prod environment variable
+  // Add prod environment config overrides here and enable at startup with TARGET_ENV=prod environment variable
+  environmentName: "Production"
 };

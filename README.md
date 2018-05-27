@@ -117,8 +117,14 @@ Run the container: (can remove ```AWS_ACCESS_KEY_ID``` and ```AWS_SECRET_ACCESS_
 docker run -e "AWS_REGION=<region>" -e "AWS_ACCESS_KEY_ID=<accesskey>" -e "AWS_SECRET_ACCESS_KEY=<secretkey>" -p 3000:3000 c3vis
 ```
 
+E.g. To run with `prod` target environment configuration:
 
-Browse to `<docker localhost>:3000` (e.g. [http://192.168.99.100:3000](http://192.168.99.100:3000))
+```
+docker run -e "TARGET_ENV=prod" -p 3000:3000 c3vis
+```
+
+
+Browse to [http://localhost:3000](http://localhost:3000)
 
 
 # Credits

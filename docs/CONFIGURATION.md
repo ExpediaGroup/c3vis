@@ -4,25 +4,33 @@ Server-side settings are configurable via configuration files.  Default settings
 
 ## Environment Overrides
 
-Different environments may require different settings (e.g. rate at which you want to make AWS API calls may be different on a laptop vs production environment).
-Settings can be overridden per environment by adding entries to a config file with a name matching the `NODE_ENV` environment variable.
-E.g. if `NODE_ENV` = `test`, the `config/env/test.js` file overrides will be applied and override the settings in `config/defaults.js`.
+Different environments may require different settings (e.g. rate at which you
+ want to make AWS API calls may be different on a laptop vs production
+ environment).
+Settings can be overridden per environment by adding entries to a config file
+ with a name matching the `TARGET_ENV` environment variable. 
+E.g. if `TARGET_ENV` = `test`, the `config/env/test.js` file overrides will be 
+applied and override the settings in `config/defaults.js`.
+
+Note: `TARGET_ENV` is kept distinct from `NODE_ENV` as the recommended Express 
+JS setting for `NODE_ENV` is `production` when running outside a development 
+context (see: https://expressjs.com/en/advanced/best-practice-performance.html#set-node_env-to-production) 
 
 Blank files are provided for the following configuration files:
 
-`NODE_ENV`|Configuration File
-----------|------------------
-`null`|[config/env/dev.js](config/env/dev.js) (`dev` environment is assumed if `NODE_ENV` not set
-`"dev"`|[config/env/dev.js](config/env/dev.js)
-`"test"`|[config/env/test.js](config/env/test.js)
-`"prod"`|[config/env/prod.js](config/env/prod.js)
+`TARGET_ENV`|Configuration File
+------------|------------------
+`undefined` |[config/env/dev.js](config/env/dev.js) (`dev` environment is assumed if `TARGET_ENV` not set)
+`"dev"`     |[config/env/dev.js](config/env/dev.js)
+`"test"`    |[config/env/test.js](config/env/test.js)
+`"prod"`    |[config/env/prod.js](config/env/prod.js)
 
 ## Configuration Options
 
 The following configuration options are available:
 
 Config Key|Description|Default
-------------- |-------------|-----
+--------- |-----------|-------
 `port`|Server port to listen on|`3000`
 `clusterStateCacheTtl`|Expiry time (in milliseconds) per cluster data entry in cluster state cache|`1800000` (30 mins)
 `aws.configFile`|Configuration file containing AWS SDK configuration|`./aws_config.json`

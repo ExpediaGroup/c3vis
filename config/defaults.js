@@ -1,4 +1,5 @@
 module.exports = {
+  environmentName: undefined,
   port: process.env.PORT || 3000,
   clusterStateCacheTtl: 30 * 60 * 1000,  // Invalidate clusters in cache after 30 minutes
   aws: {
