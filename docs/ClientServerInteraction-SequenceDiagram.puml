@@ -1,0 +1,61 @@
+@startuml
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+skinparam sequenceParticipant underline
+
+actor User
+box "Client" #LightGreen
+    participant "Browser" as A
+end box
+box "Node.js Server" #LightBlue
+    participant "Request" as B
+    participant "Background Processing" as C
+    participant "ClusterStateCache" as D
+end box
+
+activate D
+
+User -> A: Select Cluster
+activate A
+
+A -> B: "/api/instance_summaries_with_tasks"
+activate B
+
+B -> C: Get ClusterState
+activate C
+C -> D: Add ClusterState with FetchStatus:INITIAL
+activate D
+C --> B: FetchStatus:INITIAL
+
+B --> A: FetchStatus:INITIAL
+deactivate B
+
+C -> D: FetchStatus:FETCHING
+
+A -> B: "/api/instance_summaries_with_tasks"
+activate B
+B -> C: Get ClusterState
+C --> B: FetchStatus:FETCHING
+B --> A: FetchStatus:FETCHING
+deactivate B
+
+C -> D: FetchStatus:FETCHED
+
+A -> B: "/api/instance_summaries_with_tasks"
+activate B
+B -> C: Get ClusterState
+C --> B: FetchStatus:FETCHED
+B --> A: FetchStatus:FETCHED InstanceSummaries:[...]
+deactivate B
+
+D --> D : Expire after 30mins
+deactivate D
+
+A --> User: Render Graph
+deactivate A
+
+deactivate C
+deactivate D
+
+@enduml

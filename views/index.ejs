@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title><%= title %></title>
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel='stylesheet' href='stylesheets/thirdparty/bootstrap.min.css' />
+    <link rel='stylesheet' href='stylesheets/thirdparty/bootstrap-3.3.7.min.css' />
     <link rel='stylesheet' href='stylesheets/app.css' />
     <link rel="stylesheet" href="stylesheets/thirdparty/d3-context-menu.css" />
     <script src="javascripts/thirdparty/d3.min.js"></script>
     <script src="javascripts/thirdparty/d3-context-menu.js"></script>
     <script src="javascripts/thirdparty/colorbrewer.js"></script>
     <script src="javascripts/thirdparty/jquery.min.js"></script>
-    <script src="javascripts/thirdparty/bootstrap.min.js"></script>
+    <script src="javascripts/thirdparty/bootstrap-3.3.7.min.js"></script>
     <script src="javascripts/thirdparty/spin.min.js"></script>
     <script src="javascripts/thirdparty/js.cookie.js"></script>
     <script src="javascripts/types.js"></script>
@@ -20,7 +20,7 @@
     <script>
       // Initialise resourceType to query param
       var resourceType = resourceTypeParam();
-      var refreshButtonText = "[refresh list]";
+      var refreshClusterListButtonText = "[refresh list]";
       var spinner = new Spinner();
       var stopSpinner = function () { spinner.stop() };
       function getClusterCookie() {
@@ -50,7 +50,7 @@
 
         var clusterSelect = $("#clusterChoice");
         clusterSelect.change(function () {
-          if ($("#clusterChoice").val() == refreshButtonText) {
+          if ($("#clusterChoice").val() == refreshClusterListButtonText) {
               refreshClusterDropdown();
             } else {
               repopulateGraph();
@@ -69,22 +69,22 @@
                   .appendTo(clusterSelect);
         });
         $("<option />")
-                .attr("value", refreshButtonText)
-                .html(refreshButtonText)
+                .attr("value", refreshClusterListButtonText)
+                .html(refreshClusterListButtonText)
                 .appendTo(clusterSelect);
       }
-      function repopulateGraph() {
+      function repopulateGraph(forceRefresh = false) {
         // Fetch data from API and generate graph
         if ($("#clusterChoice").val()) {
           spinner.spin(document.body);
-          populateGraph(staticData(), "chart", "legend", $("#clusterChoice").val(), resourceType, stopSpinner, stopSpinner);
+          populateGraph(staticData(), forceRefresh, "timestamp", "chart", "legend", $("#clusterChoice").val(), resourceType, stopSpinner, stopSpinner);
         }
       }
       function rerenderGraph() {
         // Redisplay graph using previously retrieved data
         if ($("#clusterChoice").val()) {
           spinner.spin(document.body);
-          renderGraph("chart", "legend", $("#clusterChoice").val(), resourceType, stopSpinner, stopSpinner);
+          renderGraph("timestamp", "chart", "legend", $("#clusterChoice").val(), resourceType, stopSpinner, stopSpinner);
         }
       }
       function resourceTypeParam() {
@@ -122,21 +122,28 @@
         <div>
           <div class="navbar-form navbar-left">
             <div class="btn-group" data-toggle="buttons">
-              <label class="btn btn-primary <%= resourceType.toLowerCase().trim() == "memory" ? "active" : "" %>" id="memory-radio-label">
+              <label id="memory-radio-label" class="btn btn-primary resource-type-radio <%= resourceType.toLowerCase().trim() == "memory" ? "active" : "" %>">
                 <input type="radio" id="memory-radio" autocomplete="off" <%= resourceType.toLowerCase().trim() == "memory" ? "checked" : "" %>> Memory
               </label>
-              <label class="btn btn-primary <%= resourceType.toLowerCase().trim() == "cpu" ? "active" : "" %>" id = "cpu-radio-label">
+              <label id="cpu-radio-label" class="btn btn-primary resource-type-radio <%= resourceType.toLowerCase().trim() == "cpu" ? "active" : "" %>">
                 <input type="radio" id="cpu-radio" autocomplete="off"<%= resourceType.toLowerCase().trim() == "cpu" ? "checked" : "" %>> CPU
               </label>
             </div>
           </div>
         </div>
+        <div>
+          <div class="navbar-form left">
+            <button id="refreshGraph" class="btn btn-primary"><span class="glyphicon glyphicon-refresh"></span> Reload Server Cache</button>
+          </div>
+        </div>
       </div>
     </nav>
 
+    <!-- TODO: Change to CSS Grid layout with header, (chart + legend), footer rows -->
+    <!-- TODO: Footer row to have last fetched timestamp & # instances/services/tasks -->
     <div class="container">
-        <div id="chart" class="chart"></div>
-        <div id="legend" class="legend"></div>
+      <div id="chart" class="chart"></div>
+      <div id="legend" class="legend"></div>
     </div>
 
     <script>
@@ -160,11 +167,14 @@
         buildClusterDropdown(clusterListCookie, clusterChoiceCookie);
         repopulateGraph();
       }
-      $()
-      // When 'Memory' or 'CPU' button is clucked, set resourceType var and call renderGraph();
-      $(".btn-primary").click(function() {
+      // When 'Memory' or 'CPU' button is clicked, set resourceType var and call renderGraph();
+      $(".resource-type-radio").click(function() {
         resourceType = $(this).text().trim();
         rerenderGraph();
+      });
+      $("#refreshGraph").click(function() {
+        console.debug("Refreshing graph with 'forceRefresh'...");
+        repopulateGraph(true);
       });
     </script>
 
