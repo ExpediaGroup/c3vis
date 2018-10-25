@@ -16,7 +16,7 @@ E.g. to set the region used by c3vis server to `us-east-1`, create an `aws_confi
 }
 ```
 
-The contents of this file override all other sources of AWS SDK configuration.  
+The contents of this file override all other sources of AWS SDK configuration.
 The settings are applied to the AWS Global Configuration Object using `AWS.config.update()` as per [Using the Global Configuration Object](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/global-config-object.html)
 
 ## AWS Region
@@ -27,7 +27,7 @@ Otherwise the Region will be configured as per [Setting the AWS Region](https://
 
 ## AWS Credentials
 
-If using `aws_config.json` file as per above section, you can add AWS credentials properties `accessKeyId` and `secretAccessKey` to the `aws_config.json` 
+If using `aws_config.json` file as per above section, you can add AWS credentials properties `accessKeyId` and `secretAccessKey` to the `aws_config.json`
 See [https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/loading-node-credentials-json-file.html](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/loading-node-credentials-json-file.html).
 
 *NOTE: Storing credentials in plaintext file is not recommended, especially if there is a risk this file could be committed to version control.*
@@ -38,7 +38,7 @@ Otherwise, the credentials will be loaded as per priority listed [here](https://
 
 ### EC2 IAM Role Permissions
 
-When running c3vis on EC2 instances using an IAM role, ensure the role has the 
+When running c3vis on EC2 instances using an IAM role, ensure the role has the
 following permissions:
 
 * `ecs:listContainerInstances`
@@ -47,7 +47,7 @@ following permissions:
 * `ecs:describeTasks`
 * `ecs:describeTaskDefinition`
 * `ecs:listClusters`
-* `ec2:describeInstance`
+* `ec2:describeInstances`
 
 Sample IAM Inline Policy:
 ```
@@ -79,7 +79,7 @@ When running c3vis on an ECS cluster, you can use an ECS Task IAM Role, which
  can be created using the process documented [here](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html#create_task_iam_policy_and_role).
 Ensure the IAM Policy has the permissions listed above.
 
-## Security Warning 
+## Security Warning
 
 **WARNING:** c3vis makes ECS data from the above API calls (including environment variables in task definitions) available to clients/browsers.
 Ensure the c3vis server is available only to users that should have access to this information.
