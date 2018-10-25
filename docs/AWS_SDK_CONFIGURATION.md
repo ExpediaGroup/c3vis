@@ -83,4 +83,3 @@ Ensure the IAM Policy has the permissions listed above.
 
 **WARNING:** c3vis makes ECS data from the above API calls (including environment variables in task definitions) available to clients/browsers.
 Ensure the c3vis server is available only to users that should have access to this information.
-
