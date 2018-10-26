@@ -47,7 +47,7 @@ following permissions:
 * `ecs:describeTasks`
 * `ecs:describeTaskDefinition`
 * `ecs:listClusters`
-* `ec2:describeInstance`
+* `ec2:describeInstances`
 
 Sample IAM Inline Policy:
 ```
