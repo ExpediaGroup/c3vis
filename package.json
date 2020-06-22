@@ -16,7 +16,7 @@
     "debug": "3.1.0",
     "ejs": "2.5.5",
     "express": "4.16.3",
-    "lodash": "4.17.11",
+    "lodash": "4.17.13",
     "memory-cache": "0.2.0",
     "moment": "2.22.1",
     "morgan": "1.9.0",
