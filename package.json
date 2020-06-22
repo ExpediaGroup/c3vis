@@ -19,7 +19,7 @@
     "lodash": "4.17.11",
     "memory-cache": "0.2.0",
     "moment": "2.22.1",
-    "morgan": "1.9.0",
+    "morgan": "1.9.1",
     "serve-favicon": "2.5.0",
     "sleep": "3.0.1"
   },
